@@ -1,14 +1,9 @@
 # Exclude backend-specific files and folders from npm package
-src/backend/
+src/
 .env
-node_modules/
+node_modules
 
 # Ignore other unnecessary files
-tests/
-coverage/
-Dockerfile
-docker-compose.yml
 .git/
 .gitignore
-.vscode/
-dist/
+

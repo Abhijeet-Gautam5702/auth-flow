@@ -1,12 +1,14 @@
 {
   "name": "auth-flow",
   "version": "1.0.0",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "dev": "ts-node-dev --files src/index.ts",
-    "build":"tsc",
-    "start":"node dist/index.js",
-    "deploy": "npm run build && npm run start"
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "deploy": "npm run build && npm run start",
+    "prepare": "npm run build"
   },
   "keywords": [],
   "author": "Abhijeet Gautam",
@@ -21,7 +23,6 @@
     "mongoose": "^8.7.2",
     "nodemailer": "^6.9.15",
     "resend": "^4.0.0",
-    "typescript": "^5.6.3",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -33,6 +34,7 @@
     "@types/jsonwebtoken": "^9.0.7",
     "@types/mongoose": "^5.11.96",
     "@types/nodemailer": "^6.4.16",
-    "ts-node-dev": "^2.0.0"
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.6.3"
   }
 }
