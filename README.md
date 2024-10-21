@@ -1,6 +1,6 @@
-# Auth Flow
+# Auth Wave
 
-A one-stop solution for all your authentication needs.
+A simple, intuitive and open-source solution to all your authentication needs.
 
 ## Installation
 
