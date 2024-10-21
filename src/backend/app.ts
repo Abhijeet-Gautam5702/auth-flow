@@ -1,7 +1,7 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors, { CorsOptions } from "cors";
-import { env } from "../constants";
+import { API_VERSION, env } from "../constants";
 
 // Initialize express app
 const app = express();
@@ -22,6 +22,8 @@ app.use(
 );
 
 // Router imports
+import { healthCheckRouter } from "./routes/healthcheck.route";
 
+app.use(`/api/${API_VERSION}/healthcheck`, healthCheckRouter);
 
 export default app;
