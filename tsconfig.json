@@ -6,12 +6,14 @@
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
   },
   "include": [
     "src"
   ],
   "exclude": [
     "node_modules",
-    "**/__tests__/*"
+    "dist"
   ]
 }

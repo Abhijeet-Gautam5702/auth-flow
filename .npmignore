@@ -6,4 +6,4 @@ node_modules
 # Ignore other unnecessary files
 .git/
 .gitignore
-
+tsconfig.json

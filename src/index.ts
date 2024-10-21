@@ -17,3 +17,6 @@ try {
   console.log(`${responseType.SERVER_ERROR}: ${error.message}`);
   process.exit(1);
 }
+
+// Export the methods/services to be used by the client
+export { TestService } from "./sdk/test.service";
