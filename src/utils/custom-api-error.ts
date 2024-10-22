@@ -2,7 +2,7 @@ import { IApiError } from "../types/types";
 
 // ApiError class extends the Error class from NodeJS and implements IApiError interface (ensures type-safety)
 export class ApiError extends Error implements IApiError {
-  errors?: Error[];
+  errors?: any[] | undefined;
   statusCode: number;
   stack?: string | undefined;
   type: string; // response type

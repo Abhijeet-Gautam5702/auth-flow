@@ -1,5 +1,5 @@
-import app from "./backend/app";
-import { dbConnect } from "./backend/database/db-config";
+import app from "./app";
+import { dbConnect } from "./database/db-config";
 import { env, responseType } from "./constants";
 
 // Connect to the database

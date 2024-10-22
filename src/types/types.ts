@@ -1,18 +1,52 @@
-// Interface for ApiError class
+import { ZodIssue } from "zod";
+
+// Utility: ApiError class
 export interface IApiError {
   message: string;
-  errors?: Error[];
+  errors?: any[] | undefined;
   statusCode: number;
   type: string;
   data: null;
   success: boolean;
 }
 
-// Interface of ApiResponse class
+// Utility: ApiResponse class
 export interface IApiResponse {
   message: string;
   statusCode: number;
   data: any;
   type: string;
   success: boolean;
+}
+
+// Mongoose: UserSchema
+export interface IUser {
+  username: string;
+  email: string;
+  password: string;
+  verification: {
+    isVerified: boolean;
+    verificationToken: string;
+    verificationTokenExpiry: Date;
+  };
+  resetPassword: {
+    resetPasswordToken: string;
+    resetPasswordTokenExpiry: Date;
+  };
+}
+
+
+/* ------------------------------------- */
+
+// Fn: Validation of Signup Inputs
+export interface IValidateSignupInput{
+  success:boolean,
+  errors?: any[] | undefined
+}
+
+// Signup inputs
+export interface ISignupInput{
+  username: string;
+  email: string;
+  password: string;
 }

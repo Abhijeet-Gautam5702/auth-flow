@@ -18,7 +18,7 @@ export const asyncHandler = (
         statusCode: error.statusCode || responseType.SERVER_ERROR.code,
         message: error.message || "Something went wrong at our end",
         errors: error.errors || [],
-        type: responseType.SERVER_ERROR.type,
+        type: error.type || responseType.SERVER_ERROR.type,
         success: false,
       });
     }
