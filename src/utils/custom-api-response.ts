@@ -1,11 +1,4 @@
-// Interface of ApiResponse class
-export interface IApiResponse {
-  message: string;
-  statusCode: number;
-  data: any;
-  type: string;
-  success: boolean;
-}
+import { IApiResponse } from "../types/types";
 
 // ApiResponse class implements the IApiResponse interface to ensure type-safety
 export class ApiResponse implements IApiResponse {

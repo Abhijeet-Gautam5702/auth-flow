@@ -1,6 +1,6 @@
-// Test controller to check whether the backend APIs are working
+// Test-controller to check whether the backend APIs are working
 
-import { responseType } from "../../constants";
+import { responseType } from "../constants";
 import { asyncHandler } from "../utils/async-handler";
 import { ApiResponse } from "../utils/custom-api-response";
 import { Request, Response } from "express";

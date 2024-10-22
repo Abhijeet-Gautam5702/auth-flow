@@ -1,16 +1,8 @@
-// Interface for ApiError class
-export interface IApiError {
-  message: string;
-  errors: Error[];
-  statusCode: number;
-  type: string;
-  data: null;
-  success: boolean;
-}
+import { IApiError } from "../types/types";
 
 // ApiError class extends the Error class from NodeJS and implements IApiError interface (ensures type-safety)
 export class ApiError extends Error implements IApiError {
-  errors: Error[];
+  errors?: Error[];
   statusCode: number;
   stack?: string | undefined;
   type: string; // response type
@@ -21,11 +13,11 @@ export class ApiError extends Error implements IApiError {
     statusCode: number,
     type: string,
     message: string,
-    errors: Error[]
+    errors?: Error[]
   ) {
     super(message);
     this.statusCode = statusCode;
-    this.errors = errors;
+    this.errors = errors || [];
     this.type = type;
     this.data = null;
     this.success = false;

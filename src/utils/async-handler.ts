@@ -1,4 +1,4 @@
-import { responseType } from "../../constants";
+import { responseType } from "../constants";
 import { Request, Response } from "express"; // Importing request and response types from Express
 
 // Wrapper for every API-controller
