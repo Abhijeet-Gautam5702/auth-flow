@@ -1,10 +1,26 @@
 import { model, Schema } from "mongoose";
-import { IUser } from "../types/types";
+import { IUser, IUserMethods, IUserModel } from "../types/types";
 import bcrypt from "bcrypt";
 import { logger } from "../utils/logger";
 import { responseType } from "../constants";
 
-const UserSchema = new Schema<IUser>(
+/*
+  Schema<TDocument, TModel, TInstanceMethods> generic
+
+  Tdocument:-
+  It defines the overall shape and structure of the "document"
+
+  TModel:-
+  It defines the overall shape of the "model" with any static-methods (i.e., model-level operations which work on the complete model/collection)
+
+  TInstanceMethods:-
+  It defines the overall shape of the instance methods on a document (i.e., methods that can be called on individual document instances, such as validating password etc.)
+
+  BEST-PRACTICE: 
+  `new Schema<IUser, IUserModel, IUserMethods>` gives the flexibility to define static methods & instance methods, whereas `new Schema<IUser>` allows only for instance methods.
+  It's better to declare the types and Schema-generic-parameters separately
+*/
+const UserSchema = new Schema<IUser, IUserModel, IUserMethods>(
   {
     username: {
       type: String,
@@ -52,5 +68,24 @@ UserSchema.pre("save", async function () {
     throw error;
   }
 });
+
+// Mongoose method to validate password
+/*
+  NOTE: For TypeScript to recognize mongoose methods, we have to define the type/interface for mongoose methods separately and declare them while creating the Schema
+*/
+UserSchema.methods.validatePassword = async function (
+  password: string
+): Promise<boolean> {
+  try {
+    const isPasswordCorrect = await bcrypt.compare(password, this.password);
+    return isPasswordCorrect;
+  } catch (error) {
+    logger(
+      responseType.DATABASE_ERROR.type,
+      "The password could not be compared with the hashed password stored in database"
+    );
+    throw error;
+  }
+};
 
 export const User = model<IUser>("User", UserSchema);
