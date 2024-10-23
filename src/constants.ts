@@ -24,15 +24,15 @@ export const responseType = {
     type: "ACCOUNT_CREATED",
   },
   EMAIL_VERIFIED: {
-    code: 204,
+    code: 200,
     type: "EMAIL_VERIFIED",
   },
   SESSION_DELETED: {
-    code: 204,
+    code: 200,
     type: "SESSION_DELETED",
   },
   ACCOUNT_DELETED: {
-    code: 204,
+    code: 200,
     type: "ACCOUNT_DELETED",
   },
   INCORRECT_PASSWORD: {
