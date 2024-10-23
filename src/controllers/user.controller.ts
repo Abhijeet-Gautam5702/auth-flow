@@ -1,13 +1,13 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "../utils/async-handler";
 import { ApiError } from "../utils/custom-api-error";
-import { env, responseType } from "../constants";
+import { responseType } from "../constants";
 import { validateSignupInput } from "../schema/validation";
 import { User } from "../models/user.model";
 import { ApiResponse } from "../utils/custom-api-response";
-import { IUser } from "../types/types";
-import { generateToken } from "../utils/token-generator";
+import { filterObject } from "../utils/filter-object";
 
+// CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
   async (req: Request, res: Response) => {
     // Get the user credentials
@@ -48,7 +48,8 @@ export const createAccount = asyncHandler(
     });
 
     // Remove sensitive data from the user-data (newly created)
-    const userData = await User.findById(createdUser._id).select("-password");
+    /* Note: Another database call is not made to reduce the number of interactions with the Database */
+    const userData = filterObject(createdUser, [], ["password"]);
 
     // Send response
     res
@@ -63,3 +64,10 @@ export const createAccount = asyncHandler(
       );
   }
 );
+
+// DELETE USER ACCOUNT
+
+// CREATE USER LOGIN SESSION
+
+// DELETE USER LOGIN SESSION
+
