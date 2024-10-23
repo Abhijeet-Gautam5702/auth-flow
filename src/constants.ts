@@ -1,4 +1,4 @@
-import "dotenv/config"
+import "dotenv/config";
 
 // Message codes for the API-responses
 export const responseType = {
@@ -66,6 +66,10 @@ export const responseType = {
     code: 400,
     type: "UNSUSCCESSFUL",
   },
+  ALREADY_EXISTS: {
+    code: 400,
+    type: "ALREADY_EXISTS",
+  },
   INVALID_FORMAT: {
     code: 400,
     type: "INVALID_FORMAT",
@@ -105,13 +109,22 @@ export const API_VERSION: string = "v1";
 
 // Environment variables (as constants)
 export const env = {
-  token: {},
+  token: {
+    refreshToken: {
+      secret: String(process.env.REFRESH_TOKEN_SECRET),
+      expiry: "30d",
+    },
+    accessToken: {
+      secret: String(process.env.ACCESS_TOKEN_SECRET),
+      expiry: "1d",
+    },
+  },
   app: {
     port: Number(process.env.PORT),
     corsOrigin: String(process.env.CORS_ORIGIN),
   },
   database: {
     uri: String(process.env.MONGO_DB_URI),
-    dbName: "auth-flow",
+    dbName: "auth-wave",
   },
 };

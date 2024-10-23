@@ -24,28 +24,23 @@ export interface IUser {
   username: string;
   email: string;
   password: string;
-  verification: {
-    isVerified: boolean;
-    verificationToken: string;
-    verificationTokenExpiry: Date;
-  };
-  resetPassword: {
-    resetPasswordToken: string;
-    resetPasswordTokenExpiry: Date;
-  };
+  isVerified: boolean;
+  verificationToken?: string;
+  verificationTokenExpiry?: Date;
+  resetPasswordToken?: string;
+  resetPasswordTokenExpiry?: Date;
 }
-
 
 /* ------------------------------------- */
 
 // Fn: Validation of Signup Inputs
-export interface IValidateSignupInput{
-  success:boolean,
-  errors?: any[] | undefined
+export interface IValidateSignupInput {
+  success: boolean;
+  errors?: any[] | undefined;
 }
 
 // Signup inputs
-export interface ISignupInput{
+export interface ISignupInput {
   username: string;
   email: string;
   password: string;

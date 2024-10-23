@@ -8,7 +8,7 @@ export class ApiResponse implements IApiResponse {
   type: string; // response type
   success: boolean;
 
-  constructor(statusCode: number, message: string, data: any, type: string) {
+  constructor(statusCode: number, type: string, message: string, data: any) {
     this.message = message;
     this.data = data;
     this.statusCode = statusCode;

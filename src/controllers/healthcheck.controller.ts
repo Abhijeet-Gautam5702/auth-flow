@@ -14,9 +14,9 @@ export const healthCheck = asyncHandler(
       .json(
         new ApiResponse(
           200,
+          responseType.SUCCESSFUL.type,
           "Health check OK",
           {},
-          responseType.SUCCESSFUL.type
         )
       );
   }
