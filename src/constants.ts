@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { CookieOptions } from "express";
 
 // Message codes for the API-responses
 export const responseType = {
@@ -33,6 +34,10 @@ export const responseType = {
   ACCOUNT_DELETED: {
     code: 204,
     type: "ACCOUNT_DELETED",
+  },
+  INCORRECT_PASSWORD: {
+    code: 401,
+    type: "INCORRECT_PASSWORD",
   },
   TOKEN_EXPIRED: {
     code: 401,
@@ -127,4 +132,11 @@ export const env = {
     uri: String(process.env.MONGO_DB_URI),
     dbName: "auth-wave",
   },
+};
+
+// Cookie options
+export const cookieOptions: CookieOptions = {
+  httpOnly: true,
+  sameSite: "none",
+  secure: true,
 };
