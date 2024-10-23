@@ -1,11 +1,14 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "../utils/async-handler";
 import { ApiError } from "../utils/custom-api-error";
-import { responseType } from "../constants";
+import { cookieOptions, env, responseType } from "../constants";
 import { validateSignupInput } from "../schema/validation";
 import { User } from "../models/user.model";
 import { ApiResponse } from "../utils/custom-api-response";
 import { filterObject } from "../utils/filter-object";
+import { generateToken } from "../utils/token-generator";
+import { Session } from "../models/session.model";
+import { IUser } from "../types/types";
 
 // CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
@@ -68,6 +71,107 @@ export const createAccount = asyncHandler(
 // DELETE USER ACCOUNT
 
 // CREATE USER LOGIN SESSION
+export const createLoginSession = asyncHandler(
+  async (req: Request, res: Response) => {
+    // Get the user credentials
+    const { username, email, password } = req.body;
+    if (!(username && email && password)) {
+      throw new ApiError(
+        responseType.INVALID_FORMAT.code,
+        responseType.INVALID_FORMAT.type,
+        "One or more field(s) are not provided. Please enter all fields."
+      );
+    }
+    // Validate schema of input fields
+    const validation = validateSignupInput({ username, password, email });
+    if (!validation.success) {
+      throw new ApiError(
+        responseType.INVALID_FORMAT.code,
+        responseType.INVALID_FORMAT.type,
+        "One or more input fields do not conform the prescribed format",
+        validation.errors
+      );
+    }
+
+    // Check if the user exists in the database
+    const userFromDB = await User.findOne({
+      $and: [{ email }, { username }],
+    });
+    if (!userFromDB) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "User not found in database. Enter the correct login credentials"
+      );
+    }
+
+    // Validate the password
+    const isPasswordCorrect = await userFromDB.validatePassword(password);
+    if(!isPasswordCorrect){
+      throw new ApiError(
+        responseType.INCORRECT_PASSWORD.code,
+        responseType.INCORRECT_PASSWORD.type,
+        "Please provide valid credentials"
+      )
+    }
+
+    // Generate access and refresh tokens
+    const accessToken = generateToken(
+      {
+        userId: userFromDB._id,
+        email: userFromDB.email,
+        username: userFromDB.username,
+      },
+      env.token.accessToken.secret,
+      env.token.accessToken.expiry
+    );
+    const refreshToken = generateToken(
+      {
+        userId: userFromDB._id,
+        email: userFromDB.email,
+        username: userFromDB.username,
+      },
+      env.token.refreshToken.secret,
+      env.token.refreshToken.expiry
+    );
+    // Generate token expiries (in Date format)
+    const accessTokenExpiry = new Date(
+      new Date().getTime() + 24 * 60 * 60 * 1000
+    );
+    const refreshTokenExpiry = new Date(
+      new Date().getTime() + 30 * 24 * 60 * 60 * 1000
+    );
+
+    // Create a new session-document corresponding to the user-Id
+    const createdSession = await Session.create({
+      userId: userFromDB._id,
+      refreshToken,
+      refreshTokenExpiry,
+      accessToken,
+      accessTokenExpiry,
+    });
+
+    // Set browser cookies and send response
+    res
+      .status(responseType.SESSION_CREATED.code)
+      .cookie("user-access-token", accessToken, {
+        ...cookieOptions,
+        maxAge: 1 * 24 * 60 * 60 * 1000,
+      })
+      .cookie("user-refresh-token", refreshToken, {
+        ...cookieOptions,
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        path:"/refresh"
+      })
+      .json(
+        new ApiResponse(
+          responseType.SESSION_CREATED.code,
+          responseType.SESSION_CREATED.type,
+          "Login session created successfully",
+          createdSession
+        )
+      );
+  }
+);
 
 // DELETE USER LOGIN SESSION
-
