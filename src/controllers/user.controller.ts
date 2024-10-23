@@ -8,7 +8,7 @@ import { ApiResponse } from "../utils/custom-api-response";
 import { filterObject } from "../utils/filter-object";
 import { generateToken } from "../utils/token-generator";
 import { Session } from "../models/session.model";
-import { IUser } from "../types/types";
+import { IRequest, IUser } from "../types/types";
 
 // CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
@@ -68,7 +68,7 @@ export const createAccount = asyncHandler(
   }
 );
 
-// DELETE USER ACCOUNT
+// SECURED ROUTE: DELETE USER ACCOUNT
 
 // CREATE USER LOGIN SESSION
 export const createLoginSession = asyncHandler(
@@ -107,12 +107,12 @@ export const createLoginSession = asyncHandler(
 
     // Validate the password
     const isPasswordCorrect = await userFromDB.validatePassword(password);
-    if(!isPasswordCorrect){
+    if (!isPasswordCorrect) {
       throw new ApiError(
         responseType.INCORRECT_PASSWORD.code,
         responseType.INCORRECT_PASSWORD.type,
         "Please provide valid credentials"
-      )
+      );
     }
 
     // Generate access and refresh tokens
@@ -161,7 +161,7 @@ export const createLoginSession = asyncHandler(
       .cookie("user-refresh-token", refreshToken, {
         ...cookieOptions,
         maxAge: 30 * 24 * 60 * 60 * 1000,
-        path:"/refresh"
+        path: "/refresh",
       })
       .json(
         new ApiResponse(
@@ -174,4 +174,26 @@ export const createLoginSession = asyncHandler(
   }
 );
 
-// DELETE USER LOGIN SESSION
+// SECURED ROUTE: DELETE USER LOGIN SESSION
+export const deleteLoginSession = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // User-Auth-Middleware: Authenticate the user
+
+    // Delete the session-document using the access token
+    await Session.findByIdAndDelete(req.session?.id);
+
+    // Clear the browser cookies and send response
+    res
+      .status(responseType.SESSION_DELETED.code)
+      .clearCookie("user-access-token")
+      .clearCookie("user-refresh-token")
+      .json(
+        new ApiResponse(
+          responseType.SESSION_DELETED.code,
+          responseType.SESSION_DELETED.type,
+          "User login session delete successfully",
+          {}
+        )
+      );
+  }
+);
