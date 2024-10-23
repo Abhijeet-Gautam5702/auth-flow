@@ -1,7 +1,7 @@
-import { Schema, Types, model } from "mongoose";
-import { ISession } from "../types/types";
+import { Schema, model } from "mongoose";
+import { ISession, ISessionMethods, ISessionModel } from "../types/types";
 
-const SessionSchema = new Schema<ISession>(
+const SessionSchema = new Schema<ISession, ISessionModel, ISessionMethods>(
   {
     userId: {
       type: Schema.Types.ObjectId,
