@@ -1,3 +1,4 @@
+import { Request } from "express";
 import mongoose, { Document, Model } from "mongoose";
 
 // Utility: ApiError class
@@ -19,7 +20,18 @@ export interface IApiResponse {
   success: boolean;
 }
 
-/* ------------------------------USER MODEL TYPES ------------------------------------ */
+// Utility: Custom ApiRequest interface (used when a middleware attaches additional data to the HTTP Request object)
+export interface IRequest extends Request {
+  user?: {
+    id?: string | mongoose.Schema.Types.ObjectId;
+  };
+  session?:{
+    id?: string | mongoose.Schema.Types.ObjectId;
+    token?:string
+  }
+}
+
+/* ------------------------------ USER MODEL TYPES ------------------------------------ */
 
 // Mongoose: Base interface for User-document
 /*
@@ -56,7 +68,7 @@ export interface IUser extends IUserBase, IUserMethods, Document {}
 */
 export type IUserModel = Model<IUser, {}, IUserMethods>;
 
-/* ------------------------------SESSION MODEL TYPES ------------------------------------ */
+/* ------------------------------ SESSION MODEL TYPES ------------------------------------ */
 
 // Mongoose: SessionBase (base interface)
 export interface ISessionBase extends Document {
@@ -71,10 +83,10 @@ export interface ISessionBase extends Document {
 export interface ISessionMethods {}
 
 // Mongoose: Session interface (combined)
-export interface ISession extends ISessionBase, ISessionMethods, Document{}
+export interface ISession extends ISessionBase, ISessionMethods, Document {}
 
 // Mongoose: Session Model interface
-export type ISessionModel = Model<ISession,{},ISessionMethods>
+export type ISessionModel = Model<ISession, {}, ISessionMethods>;
 
 /* -------------------------------------------------------------------------- */
 
