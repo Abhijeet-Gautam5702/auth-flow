@@ -134,7 +134,7 @@ export const env = {
   },
   database: {
     uri: String(process.env.MONGO_DB_URI),
-    dbName: "auth-wave",
+    dbName: "auth-wave-service",
   },
 };
 

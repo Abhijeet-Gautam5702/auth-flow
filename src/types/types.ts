@@ -29,6 +29,9 @@ export interface IRequest extends Request {
   user?: {
     id?: string | mongoose.Schema.Types.ObjectId;
   };
+  admin?: {
+    id?: string | mongoose.Schema.Types.ObjectId;
+  };
   session?: {
     id?: string | mongoose.Schema.Types.ObjectId;
     token?: string;
@@ -42,6 +45,7 @@ export interface IRequest extends Request {
   NOTE: export interface IUser extends Document{ // properties } could also work, but better to separate the types
 */
 export interface IUserBase {
+  projectId: mongoose.Schema.Types.ObjectId;
   username: string;
   email: string;
   password: string;
@@ -76,6 +80,7 @@ export type IUserModel = Model<IUser, {}, IUserMethods>;
 
 // Mongoose: SessionBase (base interface)
 export interface ISessionBase extends Document {
+  projectId: mongoose.Schema.Types.ObjectId;
   userId: mongoose.Schema.Types.ObjectId;
   accessToken: string;
   accessTokenExpiry: Date;
@@ -96,7 +101,9 @@ export type ISessionModel = Model<ISession, {}, ISessionMethods>;
 
 // Mongoose: Base interface for the Project Document
 export interface IProjectBase {
+  name: string;
   secret: string;
+  config?: {};
   owner: mongoose.Schema.Types.ObjectId;
 }
 
@@ -109,6 +116,25 @@ export interface IProject extends IProjectBase, IProjectMethods, Document {}
 // Mongoose: Type for model methods on Project Model
 export type IProjectModel = Model<IProject, {}, IProjectMethods>;
 
+/* ------------------------------ PROJECT MODEL TYPES ------------------------------------ */
+
+export interface IAdminBase {
+  email: string;
+  password: string;
+  accessToken: string;
+  accessTokenExpiry: Date;
+  refreshToken: string;
+  refreshTokenExpiry: Date;
+}
+
+export interface IAdminMethods {
+  validatePassword(password: string): Promise<boolean>;
+}
+
+export interface IAdmin extends IAdminBase, IAdminMethods, Document {}
+
+export type IAdminModel = Model<IAdmin, {}, IAdminMethods>;
+
 /* -------------------------------------------------------------------------- */
 
 // Fn: Validation of Signup Inputs
@@ -119,7 +145,7 @@ export interface IValidateSignupInput {
 
 // Signup inputs
 export interface ISignupInput {
-  username: string;
+  username?: string;
   email: string;
   password: string;
 }
