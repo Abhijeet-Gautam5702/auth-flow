@@ -35,6 +35,10 @@ export const responseType = {
     code: 200,
     type: "ACCOUNT_DELETED",
   },
+  INVALID_PROJECT_CREDENTIALS: {
+    code: 401,
+    type: "INVALID_PROJECT_CREDENTIALS",
+  },
   INCORRECT_PASSWORD: {
     code: 401,
     type: "INCORRECT_PASSWORD",
@@ -67,9 +71,9 @@ export const responseType = {
     code: 401,
     type: "INVALID_API_KEY",
   },
-  UNSUSCCESSFUL: {
+  UNSUCCESSFUL: {
     code: 400,
-    type: "UNSUSCCESSFUL",
+    type: "UNSUCCESSFUL",
   },
   ALREADY_EXISTS: {
     code: 400,

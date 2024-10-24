@@ -1,6 +1,6 @@
 import express from "express";
 import cookieParser from "cookie-parser";
-import cors, { CorsOptions } from "cors";
+import cors from "cors";
 import { API_VERSION, env } from "./constants";
 
 // Initialize express app
@@ -21,11 +21,16 @@ app.use(
   })
 );
 
+
 // Router imports
 import { healthCheckRouter } from "./routes/healthcheck.route";
 import { userRouter } from "./routes/user.route";
+import { validateProject } from "./middlewares/validate-project.middleware";
+
+// Validate the Project credentials on hitting any endpoint
+app.use(validateProject);
 
 app.use(`/api/${API_VERSION}/healthcheck`, healthCheckRouter);
-app.use(`/api/${API_VERSION}/user`, userRouter)
+app.use(`/api/${API_VERSION}/user`, userRouter);
 
 export default app;

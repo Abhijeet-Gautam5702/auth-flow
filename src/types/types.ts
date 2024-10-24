@@ -1,5 +1,5 @@
 import { Request } from "express";
-import mongoose, { Document, Model } from "mongoose";
+import mongoose, { Document, Model, mongo } from "mongoose";
 
 // Utility: ApiError class
 export interface IApiError {
@@ -22,13 +22,17 @@ export interface IApiResponse {
 
 // Utility: Custom ApiRequest interface (used when a middleware attaches additional data to the HTTP Request object)
 export interface IRequest extends Request {
+  project?: {
+    id: string | mongoose.Schema.Types.ObjectId;
+    secret: string;
+  };
   user?: {
     id?: string | mongoose.Schema.Types.ObjectId;
   };
-  session?:{
+  session?: {
     id?: string | mongoose.Schema.Types.ObjectId;
-    token?:string
-  }
+    token?: string;
+  };
 }
 
 /* ------------------------------ USER MODEL TYPES ------------------------------------ */
@@ -87,6 +91,23 @@ export interface ISession extends ISessionBase, ISessionMethods, Document {}
 
 // Mongoose: Session Model interface
 export type ISessionModel = Model<ISession, {}, ISessionMethods>;
+
+/* ------------------------------ PROJECT MODEL TYPES ------------------------------------ */
+
+// Mongoose: Base interface for the Project Document
+export interface IProjectBase {
+  secret: string;
+  owner: mongoose.Schema.Types.ObjectId;
+}
+
+// Mongoose: Interface for instance methods on project documents
+export interface IProjectMethods {}
+
+// Mongoose: Combined interface for a Project Document
+export interface IProject extends IProjectBase, IProjectMethods, Document {}
+
+// Mongoose: Type for model methods on Project Model
+export type IProjectModel = Model<IProject, {}, IProjectMethods>;
 
 /* -------------------------------------------------------------------------- */
 
