@@ -4,11 +4,12 @@ import mongoose, { Document, Model, mongo } from "mongoose";
 // Utility: ApiError class
 export interface IApiError {
   message: string;
-  errors?: any[] | undefined;
+  errors?: any[] | any | undefined;
   statusCode: number;
   type: string;
   data: null;
   success: boolean;
+  stack?: string | undefined;
 }
 
 // Utility: ApiResponse class

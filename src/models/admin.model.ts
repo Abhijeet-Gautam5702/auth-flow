@@ -3,6 +3,7 @@ import { IAdmin, IAdminMethods, IAdminModel } from "../types/types";
 import bcrypt from "bcrypt";
 import { logger } from "../utils/logger";
 import { responseType } from "../constants";
+import { ApiError } from "../utils/custom-api-error";
 
 const AdminSchema = new Schema<IAdmin, IAdminModel, IAdminMethods>(
   {
@@ -52,7 +53,12 @@ AdminSchema.methods.validatePassword = async function (
       responseType.DATABASE_ERROR.type,
       "The password could not be compared with the hashed password stored in database"
     );
-    throw error;
+    throw new ApiError(
+      responseType.DATABASE_ERROR.code,
+      responseType.DATABASE_ERROR.type,
+      "The password could not be compared with the hashed password stored in database",
+      error
+    );
   }
 };
 

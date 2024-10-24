@@ -3,11 +3,9 @@ import { asyncHandler } from "../utils/async-handler";
 import { ApiError } from "../utils/custom-api-error";
 import { cookieOptions, env, responseType } from "../constants";
 import { validateSignupInput } from "../schema/validation";
-import { User } from "../models/user.model";
 import { ApiResponse } from "../utils/custom-api-response";
 import { filterObject } from "../utils/filter-object";
 import { generateToken } from "../utils/token-generator";
-import { Session } from "../models/session.model";
 import { IAdmin, IRequest } from "../types/types";
 import { Admin } from "../models/admin.model";
 
@@ -102,9 +100,7 @@ export const createLoginSession = asyncHandler(
     }
 
     // Check if the admin exists in the database
-    const adminFromDB: IAdmin = await Admin.findOne({ email }).select(
-      "-password"
-    );
+    const adminFromDB = await Admin.findOne({ email });
     if (!adminFromDB) {
       throw new ApiError(
         responseType.NOT_FOUND.code,
@@ -140,6 +136,22 @@ export const createLoginSession = asyncHandler(
       env.token.refreshToken.secret,
       env.token.refreshToken.expiry
     );
+    // Generate token expiries (in Date format)
+    const accessTokenExpiry = new Date(
+      new Date().getTime() + 24 * 60 * 60 * 1000
+    );
+    const refreshTokenExpiry = new Date(
+      new Date().getTime() + 30 * 24 * 60 * 60 * 1000
+    );
+
+    // Update the tokens in the admin-document
+    adminFromDB.refreshToken = refreshToken;
+    adminFromDB.refreshTokenExpiry = refreshTokenExpiry;
+    adminFromDB.accessToken = accessToken;
+    adminFromDB.accessTokenExpiry = accessTokenExpiry;
+    await adminFromDB.save();
+
+    const adminData = filterObject(adminFromDB, [], ["password"]);
 
     // Set browser cookies and send response
     res
@@ -158,7 +170,7 @@ export const createLoginSession = asyncHandler(
           responseType.SESSION_CREATED.code,
           responseType.SESSION_CREATED.type,
           "Login session created successfully",
-          adminFromDB
+          adminData
         )
       );
   }
@@ -172,10 +184,10 @@ export const deleteLoginSession = asyncHandler(
 
     // Delete the token details from the admin-document in database
     await Admin.findByIdAndUpdate(adminId, {
-      refreshToken: undefined,
-      refreshTokenExpiry: undefined,
-      accessToken: undefined,
-      accessTokenExpiry: undefined,
+      refreshToken: null,
+      refreshTokenExpiry: null,
+      accessToken: null,
+      accessTokenExpiry: null,
     });
 
     // Clear the browser cookies and send response

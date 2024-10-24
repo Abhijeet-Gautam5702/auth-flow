@@ -3,6 +3,7 @@ import { IUser, IUserMethods, IUserModel } from "../types/types";
 import bcrypt from "bcrypt";
 import { logger } from "../utils/logger";
 import { responseType } from "../constants";
+import { ApiError } from "../utils/custom-api-error";
 
 /*
   Schema<TDocument, TModel, TInstanceMethods> generic
@@ -82,14 +83,20 @@ UserSchema.methods.validatePassword = async function (
   password: string
 ): Promise<boolean> {
   try {
-    const isPasswordCorrect = await bcrypt.compare(password, this.password);
+    const isPasswordCorrect = await bcrypt.compare(password,this.password);
     return isPasswordCorrect;
   } catch (error) {
     logger(
       responseType.DATABASE_ERROR.type,
       "The password could not be compared with the hashed password stored in database"
     );
-    throw error;
+    
+    throw new ApiError(
+      responseType.DATABASE_ERROR.code,
+      responseType.DATABASE_ERROR.type,
+      "The password could not be compared with the hashed password stored in database",
+      error
+    );
   }
 };
 

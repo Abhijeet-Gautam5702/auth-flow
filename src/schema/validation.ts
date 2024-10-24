@@ -4,11 +4,14 @@ import { ISignupInput, IValidateSignupInput } from "../types/types";
 export const validateSignupInput = (
   input: ISignupInput
 ): IValidateSignupInput => {
-  const isUsernameValid = ZUsername.safeParse(input.username);
+  let isUsernameValid;
+  if (input.username) {
+    isUsernameValid = ZUsername.safeParse(input.username);
+  }
   const isEmailValid = ZEmail.safeParse(input.email);
   const isPasswordValid = ZPassword.safeParse(input.password);
 
-  let errors:any[] = [];
+  let errors: any[] = [];
 
   if (!isEmailValid.success) {
     isEmailValid.error.errors.map((item) => {
@@ -17,7 +20,7 @@ export const validateSignupInput = (
   }
   // Admin Signup structure doesn't have username, hence it is an optional field
   if (!isUsernameValid?.success) {
-    isUsernameValid.error.errors.map((item) => {
+    isUsernameValid?.error.errors.map((item) => {
       errors.push(item);
     });
   }
