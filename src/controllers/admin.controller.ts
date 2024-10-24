@@ -9,6 +9,7 @@ import { generateToken } from "../utils/token-generator";
 import { IAdmin, IRequest } from "../types/types";
 import { Admin } from "../models/admin.model";
 import jwt from "jsonwebtoken";
+import { Project } from "../models/project.model";
 
 // CREATE ADMIN ACCOUNT
 export const createAccount = asyncHandler(
@@ -71,9 +72,29 @@ export const createAccount = asyncHandler(
 export const deleteAccount = asyncHandler(
   async (req: IRequest, res: Response, next: NextFunction) => {
     // Authenticate the admin
+    const adminId = req.admin?.id;
+
     // Delete admin-document
+    await Admin.findByIdAndDelete(adminId);
+
     // Delete all projects whose owner is the current admin
+    await Project.findOneAndDelete({ owner: adminId });
+
+    // PENDING: Delete all users involved in the projects owned by the admin
+
     // Clear all browser cookies and send response
+    res
+      .status(responseType.ACCOUNT_DELETED.code)
+      .clearCookie("admin-access-token")
+      .clearCookie("admin-refresh-token")
+      .json(
+        new ApiResponse(
+          responseType.ACCOUNT_DELETED.code,
+          responseType.ACCOUNT_DELETED.type,
+          "Admin Account deleted successfully",
+          {}
+        )
+      );
   }
 );
 
