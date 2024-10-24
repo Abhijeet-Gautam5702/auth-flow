@@ -3,6 +3,14 @@ import { IProject, IProjectMethods, IProjectModel } from "../types/types";
 
 const ProjectSchema = new Schema<IProject, IProjectModel, IProjectMethods>(
   {
+    name: {
+      type: String,
+      required: true,
+      lowercase: true,
+    },
+    config:{
+        // Project configurations and settings
+    },
     secret: {
       type: String,
       required: true,
@@ -10,7 +18,7 @@ const ProjectSchema = new Schema<IProject, IProjectModel, IProjectMethods>(
     },
     owner: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Admin",
       required: true,
     },
   },

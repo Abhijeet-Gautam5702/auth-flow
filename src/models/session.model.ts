@@ -3,6 +3,11 @@ import { ISession, ISessionMethods, ISessionModel } from "../types/types";
 
 const SessionSchema = new Schema<ISession, ISessionModel, ISessionMethods>(
   {
+    projectId: {
+      type: Schema.Types.ObjectId,
+      ref: "Project",
+      required: true,
+    },
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",

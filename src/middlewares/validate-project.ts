@@ -10,6 +10,11 @@ import jwt from "jsonwebtoken";
 
 export const validateProject = asyncHandler(
   async (req: IRequest, res: Response, next: NextFunction) => {
+    // Skip all endpoints with "/admin" 
+    if(req.path.startsWith("/admin")){
+      next();
+    }
+
     // Get the project credentials from request headers
     const projectId: string = req.headers["project-Id"] as string;
     const projectSecret: string = req.headers["project-secret"] as string;
