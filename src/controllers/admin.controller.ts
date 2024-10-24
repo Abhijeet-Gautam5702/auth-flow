@@ -1,13 +1,14 @@
 import { NextFunction, Request, Response } from "express";
 import { asyncHandler } from "../utils/async-handler";
 import { ApiError } from "../utils/custom-api-error";
-import { cookieOptions, env, responseType } from "../constants";
+import { API_VERSION, cookieOptions, env, responseType } from "../constants";
 import { validateSignupInput } from "../schema/validation";
 import { ApiResponse } from "../utils/custom-api-response";
 import { filterObject } from "../utils/filter-object";
 import { generateToken } from "../utils/token-generator";
 import { IAdmin, IRequest } from "../types/types";
 import { Admin } from "../models/admin.model";
+import jwt from "jsonwebtoken";
 
 // CREATE ADMIN ACCOUNT
 export const createAccount = asyncHandler(
@@ -163,7 +164,6 @@ export const createLoginSession = asyncHandler(
       .cookie("admin-refresh-token", refreshToken, {
         ...cookieOptions,
         maxAge: 30 * 24 * 60 * 60 * 1000,
-        path: "/refresh",
       })
       .json(
         new ApiResponse(
@@ -199,7 +199,7 @@ export const deleteLoginSession = asyncHandler(
         new ApiResponse(
           responseType.SESSION_DELETED.code,
           responseType.SESSION_DELETED.type,
-          "User login session delete successfully",
+          "Admin login session deleted successfully",
           {}
         )
       );
@@ -207,6 +207,89 @@ export const deleteLoginSession = asyncHandler(
 );
 
 // REFRESH THE ACCESS TOKEN
+export const refreshAccessToken = asyncHandler(
+  async (req: Request, res: Response) => {
+    // Get the refresh token from the browser cookies or request header
+    const refreshToken =
+      req.headers.authorization?.replace("Bearer ", "") ||
+      req.cookies["admin-refresh-token"];
+    if (!refreshToken) {
+      throw new ApiError(
+        responseType.REFRESH_TOKEN_INVALID.code,
+        responseType.REFRESH_TOKEN_INVALID.type,
+        "Refresh token not found in browser cookies or request headers"
+      );
+    }
+
+    // Decode the refresh token to get adminId
+    const decodedToken = jwt.decode(refreshToken) as {
+      adminId: string;
+    } | null;
+    if (!decodedToken || !decodedToken.adminId) {
+      throw new ApiError(
+        responseType.REFRESH_TOKEN_INVALID.code,
+        responseType.REFRESH_TOKEN_INVALID.type,
+        "Admin-ID could not be fetched from the refresh token"
+      );
+    }
+    const adminId = decodedToken.adminId;
+    const adminFromDB: IAdmin = await Admin.findById(adminId).select(
+      "-password"
+    );
+    if (!adminFromDB) {
+      throw new ApiError(
+        responseType.REFRESH_TOKEN_INVALID.code,
+        responseType.REFRESH_TOKEN_INVALID.type,
+        "Admin corresponding to the refresh token not found in the database"
+      );
+    }
+    if (adminFromDB.refreshTokenExpiry < new Date()) {
+      throw new ApiError(
+        responseType.REFRESH_TOKEN_EXPIRED.code,
+        responseType.REFRESH_TOKEN_EXPIRED.type,
+        "Please log in again using credentials"
+      );
+    }
+
+    // Generate a new access token
+    const accessToken = generateToken(
+      {
+        adminId,
+        email: adminFromDB.email,
+      },
+      env.token.accessToken.secret,
+      env.token.accessToken.expiry
+    );
+
+    // Generate token expiries (in Date format)
+    const accessTokenExpiry = new Date(
+      new Date().getTime() + 24 * 60 * 60 * 1000
+    );
+
+    // Update the tokens in the admin-document
+    adminFromDB.accessToken = accessToken;
+    adminFromDB.accessTokenExpiry = accessTokenExpiry;
+    await adminFromDB.save();
+
+    const adminData = filterObject(adminFromDB, [], ["password"]);
+
+    // Set browser cookies and send response
+    res
+      .status(responseType.SUCCESSFUL.code)
+      .cookie("admin-access-token", accessToken, {
+        ...cookieOptions,
+        maxAge: 1 * 24 * 60 * 60 * 1000,
+      })
+      .json(
+        new ApiResponse(
+          responseType.SUCCESSFUL.code,
+          responseType.SUCCESSFUL.type,
+          "Access token has been refreshed successfully",
+          adminData
+        )
+      );
+  }
+);
 
 // SECURED ROUTE: CREATE NEW PROJECT
 
