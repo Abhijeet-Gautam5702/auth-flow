@@ -161,7 +161,6 @@ export const createLoginSession = asyncHandler(
       .cookie("user-refresh-token", refreshToken, {
         ...cookieOptions,
         maxAge: 30 * 24 * 60 * 60 * 1000,
-        path: "/refresh",
       })
       .json(
         new ApiResponse(
