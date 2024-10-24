@@ -15,7 +15,8 @@ export const validateSignupInput = (
       errors.push(item);
     });
   }
-  if (!isUsernameValid.success) {
+  // Admin Signup structure doesn't have username, hence it is an optional field
+  if (!isUsernameValid?.success) {
     isUsernameValid.error.errors.map((item) => {
       errors.push(item);
     });
