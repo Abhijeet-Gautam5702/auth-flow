@@ -8,7 +8,7 @@ import { ApiResponse } from "../utils/custom-api-response";
 import { filterObject } from "../utils/filter-object";
 import { generateToken } from "../utils/token-generator";
 import { Session } from "../models/session.model";
-import { IRequest, IUser } from "../types/types";
+import { IRequest} from "../types/types";
 
 // CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
@@ -40,7 +40,7 @@ export const createAccount = asyncHandler(
       throw new ApiError(
         responseType.ALREADY_EXISTS.code,
         responseType.ALREADY_EXISTS.type,
-        "User already present in the database. Please try with different credentials."
+        "User already present in the database. Please Login."
       );
     }
     // Create a new account
@@ -191,7 +191,7 @@ export const deleteLoginSession = asyncHandler(
         new ApiResponse(
           responseType.SESSION_DELETED.code,
           responseType.SESSION_DELETED.type,
-          "User login session delete successfully",
+          "User login session deleted successfully",
           {}
         )
       );

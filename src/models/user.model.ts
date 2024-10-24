@@ -22,6 +22,11 @@ import { responseType } from "../constants";
 */
 const UserSchema = new Schema<IUser, IUserModel, IUserMethods>(
   {
+    projectId: {
+      type: Schema.Types.ObjectId,
+      ref: "Project",
+      required: true,
+    },
     username: {
       type: String,
       trim: true,
@@ -69,7 +74,7 @@ UserSchema.pre("save", async function () {
   }
 });
 
-// Mongoose method to validate password
+// Mongoose Instance method to validate password
 /*
   NOTE: For TypeScript to recognize mongoose methods, we have to define the type/interface for mongoose methods separately and declare them while creating the Schema
 */

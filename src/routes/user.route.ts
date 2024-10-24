@@ -4,7 +4,7 @@ import {
   createLoginSession,
   deleteLoginSession,
 } from "../controllers/user.controller";
-import { authenticateUser } from "../middlewares/user-auth.middleware";
+import { authenticateUser } from "../middlewares/user-auth";
 
 const router = Router();
 
