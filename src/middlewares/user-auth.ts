@@ -23,14 +23,13 @@ export const authenticateUser = asyncHandler(
         "Access token not found in request-header or browser cookies"
       );
     }
-    // console.log(accessToken);
 
     // Check if the corresponding session-document exists in database
     const sessionFromDB = await Session.findOne({ accessToken });
     if (!sessionFromDB) {
       throw new ApiError(
-        responseType.ACCESS_TOKEN_INVALID.code,
-        responseType.ACCESS_TOKEN_INVALID.type,
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
         "Session corresponding to access-token not found in database"
       );
     }
