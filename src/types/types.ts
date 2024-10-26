@@ -24,8 +24,8 @@ export interface IApiResponse {
 // Utility: Custom ApiRequest interface (used when a middleware attaches additional data to the HTTP Request object)
 export interface IRequest extends Request {
   project?: {
-    id: string | mongoose.Schema.Types.ObjectId;
-    key: string;
+    id?: string | mongoose.Schema.Types.ObjectId;
+    key?: string;
   };
   user?: {
     id?: string | mongoose.Schema.Types.ObjectId;

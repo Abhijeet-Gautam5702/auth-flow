@@ -1,6 +1,6 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, response, Response } from "express";
 import { asyncHandler } from "../utils/async-handler";
-import { IRequest } from "../types/types";
+import { IProject, IRequest } from "../types/types";
 import { ApiError } from "../utils/custom-api-error";
 import { env, responseType } from "../constants";
 import { Project } from "../models/project.model";
@@ -51,7 +51,7 @@ export const createProject = asyncHandler(
       projectKey: "null",
     });
 
-    // Create a new secretKey for the project
+    // Create a new projectKey for the project
     const projectKey = jwt.sign(
       {
         projectId: createdProject._id,
@@ -78,12 +78,63 @@ export const createProject = asyncHandler(
   }
 );
 
+// SECURED ROUTE: CREATE A NEW PROJECT-KEY
+export const createNewProjectKey = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Admin-auth-middleware: Authenticate the admin
+
+    // Validate-project middleware: Validate the project
+    const projectId = req.project?.id;
+
+    // Find the project document from the database
+    const projectFromDB = await Project.findById(projectId);
+    if (!projectFromDB) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "Project with the given Project-ID not found in the database"
+      );
+    }
+
+    // Create a new projectKey for the project
+    const projectKey = jwt.sign(
+      {
+        projectId: projectFromDB._id,
+        owner: projectFromDB.owner,
+      },
+      env.secret.projectKeyGeneration
+    );
+
+    // Update the `projectKey` in the project document
+    projectFromDB.projectKey = projectKey;
+    await projectFromDB.save();
+
+    // Send response with updated project data
+    res
+      .status(responseType.CREATED.code)
+      .json(
+        new ApiResponse(
+          responseType.CREATED.code,
+          responseType.CREATED.type,
+          "New Project-Key created successfully",
+          projectFromDB
+        )
+      );
+  }
+);
+
+// SECURED ROUTE: GET A PROJECT (USING ITS PROJECT-ID)
+export const getProject = asyncHandler(async (req: IRequest, res: Response) => {
+  // Admin-auth middleware: Authenticate the admin
+});
+
 // SECURED ROUTE: UPDATE PROJECT CONFIGURATION
 export const updateProjectConfig = asyncHandler(
   async (req: IRequest, res: Response) => {}
 );
 
-// SECURED ROUTE: CREATE A NEW PROJECT SECRET-KEY
-export const createNewSecretKey = asyncHandler(
-  async (req: IRequest, res: Response) => {}
-);
+// SECURED ROUTE: DELETE A PROJECT (USING ITS PROJECT-ID) [no need to validate project]
+
+// SECURED ROUTE: GET ALL CREATED PROJECTS [no need to validate project]
+
+// SECURED ROUTE: DELETE ALL CREATED PROJECTS [no need to validate project]
