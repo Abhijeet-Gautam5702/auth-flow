@@ -72,6 +72,52 @@ export const createAccount = asyncHandler(
   }
 );
 
+// GET CURRENT USER & ACTIVE SESSION
+export const getCurrentUser = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // User-auth-middleware
+    const userId = req.user?.id;
+    const sessionId = req.session?.id;
+
+    // Get the current user session from the database
+    const sessionFromDB = await Session.findById(sessionId).select(
+      "-refreshToken -refreshTokenExpiry -accessToken -accessTokenExpiry"
+    );
+    if (!sessionFromDB) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "Active session not found in the database"
+      );
+    }
+
+    // Get the current user from the database
+    const userFromDB = await User.findById(userId).select(
+      "-password -verificationToken -verificationTokenExpiry -resetPasswordToken -resetPasswordTokenExpiry"
+    );
+    if (!userFromDB) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "User not found in the database"
+      );
+    }
+
+    // Send response with user and session data
+    res.status(responseType.SUCCESSFUL.code).json(
+      new ApiResponse(
+        responseType.SUCCESSFUL.code,
+        responseType.SUCCESSFUL.type,
+        "Current user and user-session fetched successfully",
+        {
+          user: userFromDB,
+          session: sessionFromDB,
+        }
+      )
+    );
+  }
+);
+
 // CREATE USER LOGIN SESSION
 export const createLoginSession = asyncHandler(
   async (req: IRequest, res: Response) => {
@@ -188,8 +234,8 @@ export const createLoginSession = asyncHandler(
   }
 );
 
-// SECURED ROUTE: DELETE USER LOGIN SESSION
-export const deleteLoginSession = asyncHandler(
+// SECURED ROUTE: DELETE USER LOGIN SESSION (CURRENT ONE)
+export const deleteCurrentLoginSession = asyncHandler(
   async (req: IRequest, res: Response) => {
     // User-Auth-Middleware: Authenticate the user
 
@@ -216,9 +262,8 @@ export const deleteLoginSession = asyncHandler(
 export const deleteAccount = asyncHandler(
   async (req: IRequest, res: Response) => {
     // User-auth-middleware: Authenticate the user
-
-    // Get the user-Id
     const userId = req.user?.id;
+
     // Delete all sessions whose userId matches with `userId`
     await Session.deleteMany({ userId });
 
@@ -228,6 +273,8 @@ export const deleteAccount = asyncHandler(
     // Clear all browser cookies and send response
     res
       .status(responseType.ACCOUNT_DELETED.code)
+      .clearCookie("user-access-token")
+      .clearCookie("user-refresh-token")
       .json(
         new ApiResponse(
           responseType.ACCOUNT_DELETED.code,
@@ -239,10 +286,84 @@ export const deleteAccount = asyncHandler(
   }
 );
 
-// SECURED ROUTE: DELETE ALL USER LOGIN SESSIONS
-
 // SECURED ROUTE: GET ALL ACTIVE LOGIN SESSIONS
+export const getAllLoginSessions = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // User-auth-middleware: Authenticate the user
+    const userId = req.user?.id;
 
-// SECURED ROUTE: DELETE A SESSION (USING ITS SESSION-ID)
+    // Get all session documents using the userId
+    const userSessionsFromDB =
+      (await Session.find({ userId }).select(
+        "-accessToken -accessTokenExpiry -refreshToken -refreshTokenExpiry"
+      )) || [];
 
-//
+    // Send response with list of sessions' data
+    res
+      .status(responseType.SUCCESSFUL.code)
+      .json(
+        new ApiResponse(
+          responseType.SUCCESSFUL.code,
+          responseType.SUCCESSFUL.type,
+          "Session List fetched successfully",
+          userSessionsFromDB
+        )
+      );
+  }
+);
+
+// SECURED ROUTE: DELETE A PARTICULAR USER LOGIN SESSION USING ITS SESSION-ID
+export const deleteLoginSessionByID = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // User-auth-middleware: Authenticate the user
+    const userId = req.user?.id;
+
+    // Get the sessionId from the request params
+    const sessionId = req.params.sessionId;
+
+    console.log("sessionId = ", sessionId); // testing
+
+    // Delete the session using its sessionId
+    await Session.findByIdAndDelete(sessionId);
+
+    // Clear the browser cookies and send response
+    /*
+      NOTE: Since we are deleting some other login-session and not the current one, so do not clear the cookies
+    */
+    res
+      .status(responseType.SESSION_DELETED.code)
+      .json(
+        new ApiResponse(
+          responseType.SESSION_DELETED.code,
+          responseType.SESSION_DELETED.type,
+          "User login session deleted successfully",
+          {}
+        )
+      );
+  }
+);
+
+// SECURED ROUTE: DELETE ALL USER LOGIN SESSIONS (INCLUDING THE CURRENT ONE)
+export const deleteAllLoginSessions = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // User-Auth-Middleware: Authenticate the user
+    const userId = req.user?.id;
+
+    // Delete the session-document using the access token
+    await Session.deleteMany({ userId });
+
+    // Clear the browser cookies and send response
+    res
+      .status(responseType.SESSION_DELETED.code)
+      .clearCookie("user-access-token")
+      .clearCookie("user-refresh-token")
+      .json(
+        new ApiResponse(
+          responseType.SESSION_DELETED.code,
+          responseType.SESSION_DELETED.type,
+          "All user login sessions deleted successfully",
+          {}
+        )
+      );
+  }
+);
