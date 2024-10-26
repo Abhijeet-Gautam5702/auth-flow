@@ -26,12 +26,13 @@ import { userRouter } from "./routes/user.route";
 import { validateProject } from "./middlewares/validate-project";
 import { adminRouter } from "./routes/admin.route";
 import { projectRouter } from "./routes/project.route";
+import { authenticateAdmin } from "./middlewares/admin-auth";
 
 // Validate the Project credentials on hitting any endpoint
-app.use(validateProject);
+// app.use(validateProject);
 
-app.use(`/api/${API_VERSION}/user`, userRouter);
+app.use(`/api/${API_VERSION}/user`, validateProject, userRouter);
 app.use(`/api/${API_VERSION}/admin`, adminRouter);
-app.use(`/api/${API_VERSION}/project`, projectRouter);
+app.use(`/api/${API_VERSION}/project`, authenticateAdmin, projectRouter);
 
 export default app;
