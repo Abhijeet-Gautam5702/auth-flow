@@ -54,7 +54,7 @@ export const createProject = asyncHandler(
     // Create a new secretKey for the project
     const projectKey = jwt.sign(
       {
-        id: createdProject._id,
+        projectId: createdProject._id,
         owner: createdProject.owner,
       },
       env.secret.projectKeyGeneration

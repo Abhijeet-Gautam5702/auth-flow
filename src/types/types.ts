@@ -25,7 +25,7 @@ export interface IApiResponse {
 export interface IRequest extends Request {
   project?: {
     id: string | mongoose.Schema.Types.ObjectId;
-    secret: string;
+    key: string;
   };
   user?: {
     id?: string | mongoose.Schema.Types.ObjectId;

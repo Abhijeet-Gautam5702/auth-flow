@@ -7,19 +7,23 @@ import { ApiError } from "../utils/custom-api-error";
 import { responseType } from "../constants";
 import { Project } from "../models/project.model";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 export const validateProject = asyncHandler(
   async (req: IRequest, res: Response, next: NextFunction) => {
     // Skip all endpoints with "/admin/"
     const endpointPath = req.path;
-    if (endpointPath.includes("/admin/") || endpointPath.includes("/project/create")) {
+    if (
+      endpointPath.includes("/admin/") ||
+      endpointPath.includes("/project/create")
+    ) {
       return next(); // Note: `return` keyword is necessary otherwise the code outside the if-block will also be executed
     }
 
     // Get the project credentials from request headers
-    const projectId: string = req.headers["project-Id"] as string;
-    const projectSecret: string = req.headers["project-secret"] as string;
-    if (!projectId && !projectSecret) {
+    const projectId: string = req.headers["project-id"] as string;
+    const projectKey: string = req.headers["project-key"] as string;
+    if (!projectId && !projectKey) {
       throw new ApiError(
         responseType.INVALID_PROJECT_CREDENTIALS.code,
         responseType.INVALID_PROJECT_CREDENTIALS.type,
@@ -36,21 +40,32 @@ export const validateProject = asyncHandler(
         "Project corresponding to credentials not found in the database"
       );
     }
-
-    // Check if the project-secret is valid
-    const decodedProjectSecret = jwt.decode(projectSecret); // jwt.decode( ) always decodes the token without any error (irrespective of the expiry) & we want exactly that.
-    if (decodedProjectSecret !== projectId) {
+    // Check if the project key is valid
+    if (projectFromDB.projectKey !== projectKey) {
       throw new ApiError(
         responseType.INVALID_PROJECT_CREDENTIALS.code,
         responseType.INVALID_PROJECT_CREDENTIALS.type,
-        "IDs of the provided Project-ID and the Project-Secret do not match"
+        "Project key has been changed. Provide the new Project Key."
+      );
+    }
+
+    // Check if the project-key corresponds to the desired project only
+    const decodedProjectKey = jwt.decode(projectKey) as {
+      projectId?: string | mongoose.Schema.Types.ObjectId;
+    } | null; // jwt.decode( ) always decodes the token without any error (irrespective of the expiry) & we want exactly that.
+
+    if (decodedProjectKey?.projectId != projectFromDB._id) {
+      throw new ApiError(
+        responseType.INVALID_PROJECT_CREDENTIALS.code,
+        responseType.INVALID_PROJECT_CREDENTIALS.type,
+        "Project-ID in the database and that of the provided Project-Key do not match. Please provide the correct and valid Project-Key."
       );
     }
 
     // Attach a project-object to the HTTP-`req` object
     req.project = {
       id: projectId,
-      secret: projectSecret,
+      key: projectKey,
     };
 
     // Pass control to next middleware/controller

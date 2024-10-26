@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { asyncHandler } from "../utils/async-handler";
 import { ApiError } from "../utils/custom-api-error";
 import { cookieOptions, env, responseType } from "../constants";
@@ -8,11 +8,13 @@ import { ApiResponse } from "../utils/custom-api-response";
 import { filterObject } from "../utils/filter-object";
 import { generateToken } from "../utils/token-generator";
 import { Session } from "../models/session.model";
-import { IRequest} from "../types/types";
+import { IRequest } from "../types/types";
 
 // CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: IRequest, res: Response) => {
+    // Project-validation middleware: Authenticate the Project
+
     // Get the user credentials
     const { username, email, password } = req.body;
     if (!(username && email && password)) {
@@ -45,6 +47,7 @@ export const createAccount = asyncHandler(
     }
     // Create a new account
     const createdUser = await User.create({
+      projectId:req.project?.id ,
       email,
       username,
       password,
@@ -67,8 +70,6 @@ export const createAccount = asyncHandler(
       );
   }
 );
-
-// SECURED ROUTE: DELETE USER ACCOUNT
 
 // CREATE USER LOGIN SESSION
 export const createLoginSession = asyncHandler(
@@ -142,6 +143,17 @@ export const createLoginSession = asyncHandler(
       new Date().getTime() + 30 * 24 * 60 * 60 * 1000
     );
 
+    // Get the device-details from req.body
+    const { details } = req.body;
+    const { deviceType, os, userAgent } = details;
+    if(!(deviceType && os && userAgent)){
+      throw new ApiError(
+        responseType.UNSUCCESSFUL.code,
+        responseType.UNSUCCESSFUL.type,
+        "One or more device/browser details missing in the request body"
+      )
+    }
+
     // Create a new session-document corresponding to the user-Id
     const createdSession = await Session.create({
       userId: userFromDB._id,
@@ -149,6 +161,7 @@ export const createLoginSession = asyncHandler(
       refreshTokenExpiry,
       accessToken,
       accessTokenExpiry,
+      details
     });
 
     // Set browser cookies and send response
@@ -196,3 +209,38 @@ export const deleteLoginSession = asyncHandler(
       );
   }
 );
+
+// SECURED ROUTE: DELETE USER ACCOUNT
+export const deleteAccount = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // User-auth-middleware: Authenticate the user
+
+    // Get the user-Id
+    const userId = req.user?.id;
+    // Delete all sessions whose userId matches with `userId`
+    await Session.deleteMany({ userId });
+
+    // Delete the user-document from the database
+    await User.findByIdAndDelete(userId);
+
+    // Clear all browser cookies and send response
+    res
+      .status(responseType.ACCOUNT_DELETED.code)
+      .json(
+        new ApiResponse(
+          responseType.ACCOUNT_DELETED.code,
+          responseType.ACCOUNT_DELETED.type,
+          "User account successfully deleted",
+          {}
+        )
+      );
+  }
+);
+
+// SECURED ROUTE: DELETE ALL USER LOGIN SESSIONS
+
+// SECURED ROUTE: GET ALL ACTIVE LOGIN SESSIONS
+
+// SECURED ROUTE: DELETE A SESSION (USING ITS SESSION-ID)
+
+//
