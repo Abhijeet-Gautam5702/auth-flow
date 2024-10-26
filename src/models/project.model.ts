@@ -8,8 +8,35 @@ const ProjectSchema = new Schema<IProject, IProjectModel, IProjectMethods>(
       required: true,
       lowercase: true,
     },
-    config:{
-        // Project configurations and settings
+    config: {
+      loginMethods: {
+        emailPassword: {
+          type: Boolean,
+          required: true,
+        },
+        OTPonEmail: {
+          type: Boolean,
+          default: false,
+        },
+        OTPonMobile: {
+          type: Boolean,
+          default: false,
+        },
+        magicURLonEmail: {
+          type: Boolean,
+          default: false,
+        },
+      },
+      security: {
+        userLimit:{
+          type:Number,
+          default:1000,
+        },
+        userSessionLimit:{
+          type:Number,
+          default:5,
+        },
+      }
     },
     secret: {
       type: String,

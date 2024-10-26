@@ -1,5 +1,10 @@
 import { Schema, model } from "mongoose";
-import { ISession, ISessionMethods, ISessionModel } from "../types/types";
+import {
+  DeviceType,
+  ISession,
+  ISessionMethods,
+  ISessionModel,
+} from "../types/types";
 
 const SessionSchema = new Schema<ISession, ISessionModel, ISessionMethods>(
   {
@@ -27,6 +32,25 @@ const SessionSchema = new Schema<ISession, ISessionModel, ISessionMethods>(
     },
     refreshTokenExpiry: {
       type: Date,
+    },
+    details: {
+      userAgent: {
+        type: String,
+        required: true,
+      },
+      os: {
+        type: String,
+        required: true,
+      },
+      platform: {
+        type: String,
+        required: true,
+      },
+      deviceType: {
+        type: String,
+        enum: Object.values(DeviceType),
+        required: true,
+      },
     },
   },
   { timestamps: true, validateBeforeSave: true }

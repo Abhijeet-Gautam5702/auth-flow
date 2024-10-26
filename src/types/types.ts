@@ -1,5 +1,5 @@
 import { Request } from "express";
-import mongoose, { Document, Model, mongo } from "mongoose";
+import mongoose, { Document, Model } from "mongoose";
 
 // Utility: ApiError class
 export interface IApiError {
@@ -79,6 +79,12 @@ export type IUserModel = Model<IUser, {}, IUserMethods>;
 
 /* ------------------------------ SESSION MODEL TYPES ------------------------------------ */
 
+// Device-type enum
+export enum DeviceType{
+  mobile="Mobile",
+  desktop="Desktop"
+}
+
 // Mongoose: SessionBase (base interface)
 export interface ISessionBase extends Document {
   projectId: mongoose.Schema.Types.ObjectId;
@@ -87,6 +93,12 @@ export interface ISessionBase extends Document {
   accessTokenExpiry: Date;
   refreshToken: string;
   refreshTokenExpiry: Date;
+  details: {
+    userAgent: string;
+    deviceType: DeviceType;
+    os: string;
+    platform: string;
+  };
 }
 
 // Mongoose: Session Methods (instance methods)
@@ -104,7 +116,26 @@ export type ISessionModel = Model<ISession, {}, ISessionMethods>;
 export interface IProjectBase {
   name: string;
   secret: string;
-  config?: {};
+  config: {
+    loginMethods: {
+      emailPassword: boolean;
+      OTPonEmail?: boolean;
+      OTPonMobile?: boolean;
+      magicURLonEmail?: boolean;
+    };
+    security: {
+      userLimit: number;
+      userSessionLimit: number;
+    };
+    emailTemplates?: {
+      userVerification?: string;
+      resetPassword?: string;
+      userLimitExceeded?: string;
+      userSessionLimitExceeded?: string;
+      OTPonEmail?: string;
+      magicURLonEmail?: string;
+    };
+  };
   owner: mongoose.Schema.Types.ObjectId;
 }
 

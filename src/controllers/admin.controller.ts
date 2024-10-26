@@ -77,8 +77,7 @@ export const deleteAccount = asyncHandler(
     // Delete admin-document
     await Admin.findByIdAndDelete(adminId);
 
-    // Delete all projects whose owner is the current admin
-    await Project.findOneAndDelete({ owner: adminId });
+    // PENDING: Delete all projects whose owner is the current admin
 
     // PENDING: Delete all users involved in the projects owned by the admin
 
@@ -312,6 +311,3 @@ export const refreshAccessToken = asyncHandler(
   }
 );
 
-// SECURED ROUTE: CREATE NEW PROJECT
-
-// SECURED ROUTE: UPDATE PROJECT CONFIGURATION
