@@ -80,9 +80,9 @@ export type IUserModel = Model<IUser, {}, IUserMethods>;
 /* ------------------------------ SESSION MODEL TYPES ------------------------------------ */
 
 // Device-type enum
-export enum DeviceType{
-  mobile="Mobile",
-  desktop="Desktop"
+export enum DeviceType {
+  mobile = "mobile",
+  desktop = "desktop",
 }
 
 // Mongoose: SessionBase (base interface)
@@ -97,7 +97,6 @@ export interface ISessionBase extends Document {
     userAgent: string;
     deviceType: DeviceType;
     os: string;
-    platform: string;
   };
 }
 
@@ -114,8 +113,8 @@ export type ISessionModel = Model<ISession, {}, ISessionMethods>;
 
 // Mongoose: Base interface for the Project Document
 export interface IProjectBase {
-  name: string;
-  secret: string;
+  projectName: string;
+  projectKey: string;
   config: {
     loginMethods: {
       emailPassword: boolean;
@@ -123,9 +122,9 @@ export interface IProjectBase {
       OTPonMobile?: boolean;
       magicURLonEmail?: boolean;
     };
-    security: {
-      userLimit: number;
-      userSessionLimit: number;
+    security?: {
+      userLimit?: number;
+      userSessionLimit?: number;
     };
     emailTemplates?: {
       userVerification?: string;

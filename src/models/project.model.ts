@@ -3,7 +3,7 @@ import { IProject, IProjectMethods, IProjectModel } from "../types/types";
 
 const ProjectSchema = new Schema<IProject, IProjectModel, IProjectMethods>(
   {
-    name: {
+    projectName: {
       type: String,
       required: true,
       lowercase: true,
@@ -13,6 +13,7 @@ const ProjectSchema = new Schema<IProject, IProjectModel, IProjectMethods>(
         emailPassword: {
           type: Boolean,
           required: true,
+          default:true,
         },
         OTPonEmail: {
           type: Boolean,
@@ -38,7 +39,7 @@ const ProjectSchema = new Schema<IProject, IProjectModel, IProjectMethods>(
         },
       }
     },
-    secret: {
+    projectKey: {
       type: String,
       required: true,
       unique: true,

@@ -19,7 +19,7 @@ export const authenticateAdmin = asyncHandler(
       throw new ApiError(
         responseType.ACCESS_TOKEN_INVALID.code,
         responseType.ACCESS_TOKEN_INVALID.type,
-        "Access token not found in request-header or browser cookies"
+        "Admin access token not found in request-header or browser cookies"
       );
     }
 
@@ -44,7 +44,7 @@ export const authenticateAdmin = asyncHandler(
       throw new ApiError(
         responseType.ACCESS_TOKEN_EXPIRED.code,
         responseType.ACCESS_TOKEN_EXPIRED.type,
-        "Refresh the access token"
+        "Refresh the admin access token"
       );
     }
 

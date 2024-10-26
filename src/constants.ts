@@ -15,6 +15,10 @@ export const responseType = {
     code: 200,
     type: "CONNECTION_SUCCESSFUL",
   },
+  CREATED: {
+    code: 201,
+    type: "CREATED",
+  },
   SESSION_CREATED: {
     code: 201,
     type: "SESSION_CREATED",
@@ -135,6 +139,9 @@ export const env = {
   database: {
     uri: String(process.env.MONGO_DB_URI),
     dbName: "auth-wave-service",
+  },
+  secret: {
+    projectKeyGeneration: String(process.env.PROJECT_KEY_GENERATION_SECRET),
   },
 };
 
