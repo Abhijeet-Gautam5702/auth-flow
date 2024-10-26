@@ -42,10 +42,6 @@ const SessionSchema = new Schema<ISession, ISessionModel, ISessionMethods>(
         type: String,
         required: true,
       },
-      platform: {
-        type: String,
-        required: true,
-      },
       deviceType: {
         type: String,
         enum: Object.values(DeviceType),

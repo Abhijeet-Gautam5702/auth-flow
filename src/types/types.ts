@@ -85,6 +85,13 @@ export enum DeviceType {
   desktop = "desktop",
 }
 
+// User-Agent interface
+export interface UserAgent {
+  userAgent: string;
+  deviceType: DeviceType;
+  os: string;
+}
+
 // Mongoose: SessionBase (base interface)
 export interface ISessionBase extends Document {
   projectId: mongoose.Schema.Types.ObjectId;
@@ -93,11 +100,7 @@ export interface ISessionBase extends Document {
   accessTokenExpiry: Date;
   refreshToken: string;
   refreshTokenExpiry: Date;
-  details: {
-    userAgent: string;
-    deviceType: DeviceType;
-    os: string;
-  };
+  details: UserAgent;
 }
 
 // Mongoose: Session Methods (instance methods)

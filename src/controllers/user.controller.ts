@@ -9,6 +9,7 @@ import { filterObject } from "../utils/filter-object";
 import { generateToken } from "../utils/token-generator";
 import { Session } from "../models/session.model";
 import { IRequest } from "../types/types";
+import { parseUserAgent } from "../utils/user-agent-parser";
 
 // CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
@@ -47,7 +48,7 @@ export const createAccount = asyncHandler(
     }
     // Create a new account
     const createdUser = await User.create({
-      projectId:req.project?.id ,
+      projectId: req.project?.id,
       email,
       username,
       password,
@@ -73,7 +74,7 @@ export const createAccount = asyncHandler(
 
 // CREATE USER LOGIN SESSION
 export const createLoginSession = asyncHandler(
-  async (req: Request, res: Response) => {
+  async (req: IRequest, res: Response) => {
     // Get the user credentials
     const { username, email, password } = req.body;
     if (!(username && email && password)) {
@@ -143,25 +144,26 @@ export const createLoginSession = asyncHandler(
       new Date().getTime() + 30 * 24 * 60 * 60 * 1000
     );
 
-    // Get the device-details from req.body
-    const { details } = req.body;
-    const { deviceType, os, userAgent } = details;
-    if(!(deviceType && os && userAgent)){
+    // Get the user-agent from request headers and parse it to obtain required details
+    const userAgent = req.headers["user-agent"];
+    if (!userAgent) {
       throw new ApiError(
         responseType.UNSUCCESSFUL.code,
         responseType.UNSUCCESSFUL.type,
-        "One or more device/browser details missing in the request body"
-      )
+        "User-Agent header missing in the request (mandatory for creating a login-session)"
+      );
     }
+    const details = parseUserAgent(userAgent);
 
     // Create a new session-document corresponding to the user-Id
     const createdSession = await Session.create({
+      projectId: req.project?.id,
       userId: userFromDB._id,
       refreshToken,
       refreshTokenExpiry,
       accessToken,
       accessTokenExpiry,
-      details
+      details,
     });
 
     // Set browser cookies and send response
