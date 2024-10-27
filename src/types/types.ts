@@ -114,30 +114,42 @@ export type ISessionModel = Model<ISession, {}, ISessionMethods>;
 
 /* ------------------------------ PROJECT MODEL TYPES ------------------------------------ */
 
+// LoginMethods interface
+export interface LoginMethods {
+  emailPassword: boolean;
+  OTPonEmail?: boolean;
+  OTPonMobile?: boolean;
+  magicURLonEmail?: boolean;
+}
+
+// Security interface
+export interface SecurityConfig {
+  userLimit?: number;
+  userSessionLimit?: number;
+}
+
+// EmailTemplate interface
+export interface EmailTemplateConfig {
+  userVerification?: string;
+  resetPassword?: string;
+  userLimitExceeded?: string;
+  userSessionLimitExceeded?: string;
+  OTPonEmail?: string;
+  magicURLonEmail?: string;
+}
+
+// Project config interface
+export interface ProjectConfig {
+  loginMethods: LoginMethods;
+  security?: SecurityConfig;
+  emailTemplates?: EmailTemplateConfig;
+}
+
 // Mongoose: Base interface for the Project Document
 export interface IProjectBase {
   projectName: string;
   projectKey: string;
-  config: {
-    loginMethods: {
-      emailPassword: boolean;
-      OTPonEmail?: boolean;
-      OTPonMobile?: boolean;
-      magicURLonEmail?: boolean;
-    };
-    security?: {
-      userLimit?: number;
-      userSessionLimit?: number;
-    };
-    emailTemplates?: {
-      userVerification?: string;
-      resetPassword?: string;
-      userLimitExceeded?: string;
-      userSessionLimitExceeded?: string;
-      OTPonEmail?: string;
-      magicURLonEmail?: string;
-    };
-  };
+  config: ProjectConfig;
   owner: mongoose.Schema.Types.ObjectId;
 }
 

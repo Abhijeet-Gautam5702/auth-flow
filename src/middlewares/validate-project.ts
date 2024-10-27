@@ -13,10 +13,7 @@ export const validateProject = asyncHandler(
   async (req: IRequest, res: Response, next: NextFunction) => {
     // Skip all endpoints with "/admin/"
     const endpointPath = req.path;
-    if (
-      endpointPath.includes("/admin/") ||
-      endpointPath.includes("/project/create")
-    ) {
+    if (endpointPath.includes("/admin/")) {
       return next(); // Note: `return` keyword is necessary otherwise the code outside the if-block will also be executed
     }
 

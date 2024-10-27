@@ -13,7 +13,7 @@ const ProjectSchema = new Schema<IProject, IProjectModel, IProjectMethods>(
         emailPassword: {
           type: Boolean,
           required: true,
-          default:true,
+          default: true,
         },
         OTPonEmail: {
           type: Boolean,
@@ -29,15 +29,41 @@ const ProjectSchema = new Schema<IProject, IProjectModel, IProjectMethods>(
         },
       },
       security: {
-        userLimit:{
-          type:Number,
-          default:1000,
+        userLimit: {
+          type: Number,
+          default: 1000,
         },
-        userSessionLimit:{
-          type:Number,
-          default:5,
+        userSessionLimit: {
+          type: Number,
+          default: 5,
         },
-      }
+      },
+      emailTemplates: {
+        userVerification: {
+          type: String,
+          required: false,
+        },
+        resetPassword: {
+          type: String,
+          required: false,
+        },
+        userLimitExceeded: {
+          type: String,
+          required: false,
+        },
+        userSessionLimitExceeded: {
+          type: String,
+          required: false,
+        },
+        OTPonEmail: {
+          type: String,
+          required: false,
+        },
+        magicURLonEmail: {
+          type: String,
+          required: false,
+        },
+      },
     },
     projectKey: {
       type: String,
