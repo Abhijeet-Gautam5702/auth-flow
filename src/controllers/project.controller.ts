@@ -6,7 +6,11 @@ import { env, responseType } from "../constants";
 import { Project } from "../models/project.model";
 import jwt from "jsonwebtoken";
 import { ApiResponse } from "../utils/custom-api-response";
-import { validateEmailTemplates, validateLoginMethods, validateSecurityObject } from "../utils/project-config-validator";
+import {
+  validateEmailTemplates,
+  validateLoginMethods,
+  validateSecurityObject,
+} from "../utils/project-config-validator";
 
 // SECURED ROUTE: CREATE NEW PROJECT
 export const createProject = asyncHandler(
@@ -35,7 +39,7 @@ export const createProject = asyncHandler(
     const projectFromDB = await Project.findOne({
       projectName,
       owner: adminId,
-    }).select("-secretKey");
+    }).select("-projectKey");
     if (projectFromDB) {
       throw new ApiError(
         responseType.ALREADY_EXISTS.code,
@@ -49,7 +53,7 @@ export const createProject = asyncHandler(
       projectName,
       owner: adminId,
       config,
-      projectKey: "null",
+      projectKey: `temporary-project-key-${Math.random()}`,
     });
 
     // Create a new projectKey for the project
@@ -178,12 +182,12 @@ export const updateLoginMethods = asyncHandler(
         "Login-Methods object not found in the Request-body"
       );
     }
-    if(Object.keys(loginMethods).length===0){
+    if (Object.keys(loginMethods).length === 0) {
       throw new ApiError(
         responseType.INVALID_FORMAT.code,
         responseType.INVALID_FORMAT.type,
         "Login-Methods object is empty. Please provide a valid object."
-      )
+      );
     }
 
     // Validate the login-methods object
@@ -234,12 +238,12 @@ export const updateSecurity = asyncHandler(
         "Security object not found in the Request-body"
       );
     }
-    if(Object.keys(security).length===0){
+    if (Object.keys(security).length === 0) {
       throw new ApiError(
         responseType.INVALID_FORMAT.code,
         responseType.INVALID_FORMAT.type,
         "Security object is empty. Please provide a valid object."
-      )
+      );
     }
 
     // Validate the security object
@@ -290,12 +294,12 @@ export const updateEmailTemplates = asyncHandler(
         "Email-Template object not found in the Request-body"
       );
     }
-    if(Object.keys(emailTemplates).length===0){
+    if (Object.keys(emailTemplates).length === 0) {
       throw new ApiError(
         responseType.INVALID_FORMAT.code,
         responseType.INVALID_FORMAT.type,
         "Email-Template object is empty. Please provide a valid object."
-      )
+      );
     }
 
     // Validate the Email-Templates object
@@ -330,7 +334,91 @@ export const updateEmailTemplates = asyncHandler(
 );
 
 // SECURED ROUTE: DELETE A PROJECT (USING ITS PROJECT-ID) [no need to validate project]
+export const deleteProject = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Admin-auth middleware: Authenticate the admin
+
+    // Get the projectId from the request-params
+    const { projectId } = req.params;
+    if (!projectId) {
+      throw new ApiError(
+        responseType.INVALID_FORMAT.code,
+        responseType.INVALID_FORMAT.type,
+        "Valid Project-ID not found in the request parameters"
+      );
+    }
+
+    // Find the project and delete it
+    await Project.findByIdAndDelete(projectId);
+
+    // Send response
+    res
+      .status(responseType.DELETED.code)
+      .json(
+        new ApiResponse(
+          responseType.DELETED.code,
+          responseType.DELETED.type,
+          "Project deleted successfully",
+          {}
+        )
+      );
+  }
+);
 
 // SECURED ROUTE: GET ALL CREATED PROJECTS [no need to validate project]
+export const getAllProjects = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    console.log("controller control started"); // testing
+
+    // Admin-auth middleware: Authenticate the admin
+    const adminId = req.admin?.id;
+
+    // Find all the projects created by the admin
+    const projectsFromDB: IProject[] | null = await Project.find({
+      owner: adminId,
+    });
+    if (!projectsFromDB) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "No projects found in the database"
+      );
+    }
+    console.log(projectsFromDB); // testing
+
+    // Send response
+    res
+      .status(responseType.SUCCESSFUL.code)
+      .json(
+        new ApiResponse(
+          responseType.SUCCESSFUL.code,
+          responseType.SUCCESSFUL.type,
+          "Projects fetched successfully",
+          projectsFromDB
+        )
+      );
+  }
+);
 
 // SECURED ROUTE: DELETE ALL CREATED PROJECTS [no need to validate project]
+export const deleteAllProjects = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Admin-auth middleware: Authenticate the admin
+    const adminId = req.admin?.id;
+
+    // Delete all projects created by the admin
+    await Project.deleteMany({ owner: adminId });
+
+    // Send response
+    res
+      .status(responseType.DELETED.code)
+      .json(
+        new ApiResponse(
+          responseType.DELETED.code,
+          responseType.DELETED.type,
+          "All projects deleted successfully",
+          {}
+        )
+      );
+  }
+);

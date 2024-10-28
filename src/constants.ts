@@ -39,6 +39,10 @@ export const responseType = {
     code: 200,
     type: "ACCOUNT_DELETED",
   },
+  DELETED: {
+    code: 200,
+    type: "DELETED",
+  },
   INVALID_PROJECT_CREDENTIALS: {
     code: 401,
     type: "INVALID_PROJECT_CREDENTIALS",
