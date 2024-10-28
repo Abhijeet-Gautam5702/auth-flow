@@ -11,6 +11,7 @@ import {
   validateLoginMethods,
   validateSecurityObject,
 } from "../utils/project-config-validator";
+import mongoose from "mongoose";
 
 // SECURED ROUTE: CREATE NEW PROJECT
 export const createProject = asyncHandler(
@@ -365,41 +366,6 @@ export const deleteProject = asyncHandler(
   }
 );
 
-// SECURED ROUTE: GET ALL CREATED PROJECTS [no need to validate project]
-export const getAllProjects = asyncHandler(
-  async (req: IRequest, res: Response) => {
-    console.log("controller control started"); // testing
-
-    // Admin-auth middleware: Authenticate the admin
-    const adminId = req.admin?.id;
-
-    // Find all the projects created by the admin
-    const projectsFromDB: IProject[] | null = await Project.find({
-      owner: adminId,
-    });
-    if (!projectsFromDB) {
-      throw new ApiError(
-        responseType.NOT_FOUND.code,
-        responseType.NOT_FOUND.type,
-        "No projects found in the database"
-      );
-    }
-    console.log(projectsFromDB); // testing
-
-    // Send response
-    res
-      .status(responseType.SUCCESSFUL.code)
-      .json(
-        new ApiResponse(
-          responseType.SUCCESSFUL.code,
-          responseType.SUCCESSFUL.type,
-          "Projects fetched successfully",
-          projectsFromDB
-        )
-      );
-  }
-);
-
 // SECURED ROUTE: DELETE ALL CREATED PROJECTS [no need to validate project]
 export const deleteAllProjects = asyncHandler(
   async (req: IRequest, res: Response) => {
@@ -418,6 +384,38 @@ export const deleteAllProjects = asyncHandler(
           responseType.DELETED.type,
           "All projects deleted successfully",
           {}
+        )
+      );
+  }
+);
+
+// [TESTING REMAINING] SECURED ROUTE: GET ALL CREATED PROJECTS [no need to validate project]
+export const getAllProjects = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Admin-auth middleware: Authenticate the admin
+    const adminId = req.admin?.id;
+
+    // Find all the projects created by the admin
+    const projectsFromDB: IProject[] | null = await Project.find({
+      owner: adminId,
+    });
+    if (!projectsFromDB) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "No projects found in the database"
+      );
+    }
+
+    // Send response
+    res
+      .status(responseType.SUCCESSFUL.code)
+      .json(
+        new ApiResponse(
+          responseType.SUCCESSFUL.code,
+          responseType.SUCCESSFUL.type,
+          "Projects fetched successfully",
+          projectsFromDB
         )
       );
   }

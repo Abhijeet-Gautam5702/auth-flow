@@ -31,7 +31,7 @@ export interface IRequest extends Request {
     id?: string | mongoose.Schema.Types.ObjectId;
   };
   admin?: {
-    id?: string | mongoose.Schema.Types.ObjectId;
+    id?: string | mongoose.Types.ObjectId;
   };
   session?: {
     id?: string | mongoose.Schema.Types.ObjectId;
