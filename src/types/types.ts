@@ -1,5 +1,5 @@
 import { Request } from "express";
-import mongoose, { Document, Model } from "mongoose";
+import mongoose, { Document, Model, Types } from "mongoose";
 
 // Utility: ApiError class
 export interface IApiError {
@@ -22,19 +22,25 @@ export interface IApiResponse {
 }
 
 // Utility: Custom ApiRequest interface (used when a middleware attaches additional data to the HTTP Request object)
+/*
+  NOTE:
+  1. `Schema.Types.ObjectId` is used to define the type in a Schema
+  2. `Types.ObjectId` is used to define the typescript type for ObjectId
+  3. `Types.ObjectId()` is used to create an mongoose-ObjectId from a valid Hex string
+*/
 export interface IRequest extends Request {
   project?: {
-    id?: string | mongoose.Schema.Types.ObjectId;
+    id?: string | Types.ObjectId;
     key?: string;
   };
   user?: {
-    id?: string | mongoose.Schema.Types.ObjectId;
+    id?: string | Types.ObjectId;
   };
   admin?: {
-    id?: string | mongoose.Types.ObjectId;
+    id?: string | Types.ObjectId;
   };
   session?: {
-    id?: string | mongoose.Schema.Types.ObjectId;
+    id?: string | Types.ObjectId;
     token?: string;
   };
 }

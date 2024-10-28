@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { asyncHandler } from "../utils/async-handler";
 import { ApiError } from "../utils/custom-api-error";
-import { API_VERSION, cookieOptions, env, responseType } from "../constants";
+import {cookieOptions, env, responseType } from "../constants";
 import { validateSignupInput } from "../schema/validation";
 import { ApiResponse } from "../utils/custom-api-response";
 import { filterObject } from "../utils/filter-object";
@@ -9,7 +9,6 @@ import { generateToken } from "../utils/token-generator";
 import { IAdmin, IRequest } from "../types/types";
 import { Admin } from "../models/admin.model";
 import jwt from "jsonwebtoken";
-import { Project } from "../models/project.model";
 
 // CREATE ADMIN ACCOUNT
 export const createAccount = asyncHandler(

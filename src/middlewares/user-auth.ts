@@ -7,8 +7,8 @@ import { User } from "../models/user.model";
 import { ApiError } from "../utils/custom-api-error";
 import { responseType } from "../constants";
 import { Session } from "../models/session.model";
-import { IRequest, IUser } from "../types/types";
-import mongoose from "mongoose";
+import { IRequest, ISession, IUser } from "../types/types";
+import mongoose, { Types } from "mongoose";
 
 export const authenticateUser = asyncHandler(
   async (req: IRequest, res: Response, next: NextFunction) => {
@@ -25,7 +25,9 @@ export const authenticateUser = asyncHandler(
     }
 
     // Check if the corresponding session-document exists in database
-    const sessionFromDB = await Session.findOne({ accessToken });
+    const sessionFromDB: ISession | null = await Session.findOne({
+      accessToken,
+    });
     if (!sessionFromDB) {
       throw new ApiError(
         responseType.NOT_FOUND.code,
@@ -66,10 +68,10 @@ export const authenticateUser = asyncHandler(
 
     // Attach a additional object(s) to the HTTP-`req` object
     req.user = {
-      id: userFromDB._id as mongoose.Schema.Types.ObjectId, // type assertion
+      id: new Types.ObjectId(userFromDB._id as string),
     };
     req.session = {
-      id: sessionFromDB._id as mongoose.Schema.Types.ObjectId, // type assertion
+      id: new Types.ObjectId(sessionFromDB._id as string),
       token: accessToken,
     };
 

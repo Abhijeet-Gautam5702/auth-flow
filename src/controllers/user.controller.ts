@@ -367,3 +367,38 @@ export const deleteAllLoginSessions = asyncHandler(
       );
   }
 );
+
+// SECURED ROUTE: VERIFY THE USER EMAIL
+export const verifyEmail = asyncHandler(async(req:IRequest,res:Response)=>{
+  // User-auth middleware: Authenticate the user
+
+  // Get the user from the database and obtain the user-email
+
+  // Check for any custom email-template present in the corresponding Project-document
+
+  //
+
+  // Send a response
+})
+
+// SECURED ROUTE: RESET PASSWORD
+export const resetPassword = asyncHandler(async(req:IRequest,res:Response)=>{
+
+})
+
+/*
+    AUTHENTICATION FEATURES
+
+    - USER LOGIN USING MAGIC-URL (ON EMAIL)
+    - USER LOGIN USING OTPs (ON EMAIL)
+    - USER LOGIN USING OTPs (ON MOBILE)
+
+*/
+
+/*
+    SECURITY FEATURES
+
+    - RATE LIMITING OF HTTP REQUESTS 
+    - ACCOUNT LOCKOUT (FOR SOME TIME) ON CERTAIN NUMBER OF FAILED LOGIN ATTEMPTS
+    - SECURITY AUDITING (log the activities on the user dashboard & admin dashboards)
+*/

@@ -7,7 +7,7 @@ import { Admin } from "../models/admin.model";
 import { ApiError } from "../utils/custom-api-error";
 import { responseType } from "../constants";
 import { IRequest, IAdmin } from "../types/types";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 
 export const authenticateAdmin = asyncHandler(
   async (req: IRequest, res: Response, next: NextFunction) => {
@@ -50,7 +50,7 @@ export const authenticateAdmin = asyncHandler(
 
     // Attach additional admin-object to HTTP-req object
     req.admin = {
-      id: adminFromDB._id as mongoose.Schema.Types.ObjectId,
+      id: new Types.ObjectId(adminFromDB._id as string),
     };
 
     // Pass control to next middleware/controller
