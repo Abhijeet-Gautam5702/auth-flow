@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { CookieOptions } from "express";
+import { EmailTemplateConfig } from "./types/types";
 
 // Message codes for the API-responses
 export const responseType = {
@@ -26,6 +27,10 @@ export const responseType = {
   ACCOUNT_CREATED: {
     code: 201,
     type: "ACCOUNT_CREATED",
+  },
+  INITIATED: {
+    code: 202,
+    type: "INITIATED",
   },
   EMAIL_VERIFIED: {
     code: 200,
@@ -99,6 +104,10 @@ export const responseType = {
     code: 404,
     type: "NOT_FOUND",
   },
+  VALIDATION_ERROR: {
+    code: 422,
+    type: "VALIDATION_ERROR",
+  },
   ACCOUNT_LOCKED: {
     code: 423,
     type: "ACCOUNT_LOCKED",
@@ -124,6 +133,10 @@ export const responseType = {
 // API version
 export const API_VERSION: string = "v1";
 
+// Organization Name and email
+export const ORG_NAME:string = "Auth Wave";
+export const ORG_EMAIL:string = "onboarding@resend.dev"
+
 // Environment variables (as constants)
 export const env = {
   token: {
@@ -134,6 +147,10 @@ export const env = {
     accessToken: {
       secret: String(process.env.ACCESS_TOKEN_SECRET),
       expiry: "1d",
+    },
+    verificationToken: {
+      secret: String(process.env.VERIFICATION_TOKEN_SECRET),
+      expiry: "10m",
     },
   },
   app: {
@@ -146,6 +163,7 @@ export const env = {
   },
   secret: {
     projectKeyGeneration: String(process.env.PROJECT_KEY_GENERATION_SECRET),
+    resendApiKey:String(process.env.RESEND_API_KEY)
   },
 };
 
@@ -154,4 +172,14 @@ export const cookieOptions: CookieOptions = {
   httpOnly: true,
   sameSite: "none",
   secure: true,
+};
+
+// Default email templates
+export const defaultEmailTemplates: EmailTemplateConfig = {
+  userVerification: "<strong> Please verify your email using the following link </strong><br><p>Verification Link</p>",
+  resetPassword: "",
+  magicURLonEmail: "",
+  OTPonEmail: "",
+  userLimitExceeded: "",
+  userSessionLimitExceeded: "",
 };

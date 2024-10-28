@@ -1,15 +1,24 @@
 import { NextFunction, Request, Response } from "express";
 import { asyncHandler } from "../utils/async-handler";
 import { ApiError } from "../utils/custom-api-error";
-import { cookieOptions, env, responseType } from "../constants";
+import {
+  cookieOptions,
+  defaultEmailTemplates,
+  env,
+  ORG_EMAIL,
+  ORG_NAME,
+  responseType,
+} from "../constants";
 import { validateSignupInput } from "../schema/validation";
 import { User } from "../models/user.model";
 import { ApiResponse } from "../utils/custom-api-response";
 import { filterObject } from "../utils/filter-object";
 import { generateToken } from "../utils/token-generator";
 import { Session } from "../models/session.model";
-import { IRequest } from "../types/types";
+import { IProject, IRequest, IUser } from "../types/types";
 import { parseUserAgent } from "../utils/user-agent-parser";
+import { Project } from "../models/project.model";
+import { sendMail } from "../utils/mailer";
 
 // CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
@@ -369,22 +378,111 @@ export const deleteAllLoginSessions = asyncHandler(
 );
 
 // SECURED ROUTE: VERIFY THE USER EMAIL
-export const verifyEmail = asyncHandler(async(req:IRequest,res:Response)=>{
-  // User-auth middleware: Authenticate the user
+export const verifyEmail = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // User-auth middleware: Authenticate the user
+    const userId = req.user?.id;
 
-  // Get the user from the database and obtain the user-email
+    // If the user is already verified => return
+    const userFromDB: IUser | null = await User.findById(userId).select(
+      "-password -refreshToken -refreshTokenExpiry -accessToken -accessTokenExpiry"
+    );
+    if (!userFromDB) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "User corresponding to the provided Email-ID not found in the database"
+      );
+    }
+    if (userFromDB.isVerified) {
+      res
+        .status(responseType.EMAIL_VERIFIED.code)
+        .json(
+          new ApiResponse(
+            responseType.EMAIL_VERIFIED.code,
+            responseType.EMAIL_VERIFIED.type,
+            "Your email has already been verified",
+            {}
+          )
+        );
+      return; // Do not execute any code further than this
+    }
 
-  // Check for any custom email-template present in the corresponding Project-document
+    // Grab the request query
+    const { email, verificationToken } = req.query;
 
-  //
+    // User-email passed in request-query
+    if (email && !verificationToken) {
+      // Generate a new verification token with expiry
+      const verificationToken = generateToken(
+        {
+          userId: userFromDB._id,
+          email: userFromDB.email,
+        },
+        env.token.verificationToken.secret,
+        env.token.verificationToken.expiry
+      );
+      // Generate expiry in JS-Date format
+      const verificationTokenExpiry = new Date(
+        new Date().getTime() + 15 * 60 * 1000
+      );
 
-  // Send a response
-})
+      // Store the token & expiry in the user-document
+      userFromDB.isVerified = true; //testing
+      userFromDB.verificationToken = verificationToken;
+      userFromDB.verificationTokenExpiry = verificationTokenExpiry;
+      await userFromDB.save();
+
+      // Send a verification e-mail to the user acc. to the template
+      // Get the emailTemplate
+      const projectFromDB: IProject | null = await Project.findById(
+        userFromDB.projectId
+      );
+      const emailTemplate: string =
+        projectFromDB!.config.emailTemplates?.userVerification ||
+        defaultEmailTemplates.userVerification!;
+
+      // Send email using resend
+      const emailResponse = await sendMail({
+        organization: `${ORG_NAME} <${ORG_EMAIL}>`,
+        userEmail: userFromDB.email,
+        subject: "Verify your email",
+        template: emailTemplate,
+      });
+
+      // Send response
+      res
+        .status(responseType.INITIATED.code)
+        .json(
+          new ApiResponse(
+            responseType.INITIATED.code,
+            responseType.INITIATED.type,
+            "Please check your registered email (within 10 minutes) to continue verification.",
+            {}
+          )
+        );
+    }
+    // Verification token passed in request-query
+    else if (verificationToken && !email) {
+      // Decode the verification token
+      // Verify the token expiry
+      // Check if the corresponding user exists in the database
+      // Update the user document with the verification-status
+      // Send response
+    } else {
+      throw new ApiError(
+        responseType.INVALID_FORMAT.code,
+        responseType.INVALID_FORMAT.type,
+        "Request query parameters not sent correctly"
+      );
+    }
+  }
+);
 
 // SECURED ROUTE: RESET PASSWORD
-export const resetPassword = asyncHandler(async(req:IRequest,res:Response)=>{
-
-})
+export const resetPassword = asyncHandler(
+  async (req: IRequest, res: Response) => {}
+);
 
 /*
     AUTHENTICATION FEATURES

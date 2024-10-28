@@ -201,3 +201,11 @@ export interface ISignupInput {
   email: string;
   password: string;
 }
+
+// Mailer inputs interface
+export interface IMailerInput {
+  organization: string;
+  userEmail: string;
+  subject: string;
+  template: string;
+}

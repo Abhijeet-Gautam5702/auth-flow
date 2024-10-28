@@ -8,6 +8,7 @@ import {
   deleteLoginSessionByID,
   getAllLoginSessions,
   getCurrentUser,
+  verifyEmail,
 } from "../controllers/user.controller";
 import { authenticateUser } from "../middlewares/user-auth";
 
@@ -32,5 +33,8 @@ router.route("/sessions").get(authenticateUser, getAllLoginSessions);
 router
   .route("/sessions/delete")
   .delete(authenticateUser, deleteAllLoginSessions);
+
+// Endpoints related to email-sending functionalities
+router.route("/verify-email").post(authenticateUser, verifyEmail);
 
 export const userRouter = router;

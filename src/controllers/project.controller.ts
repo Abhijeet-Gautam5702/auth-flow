@@ -389,7 +389,7 @@ export const deleteAllProjects = asyncHandler(
   }
 );
 
-// [TESTING REMAINING] SECURED ROUTE: GET ALL CREATED PROJECTS [no need to validate project]
+// SECURED ROUTE: GET ALL CREATED PROJECTS [no need to validate project]
 export const getAllProjects = asyncHandler(
   async (req: IRequest, res: Response) => {
     // Admin-auth middleware: Authenticate the admin
