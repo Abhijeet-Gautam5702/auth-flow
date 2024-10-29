@@ -23,6 +23,7 @@ import { Project } from "../models/project.model";
 import { sendMail } from "../utils/mailer";
 import { emailGenerator } from "../utils/email-generator";
 import jwt from "jsonwebtoken";
+import { ZPassword } from "../schema/zod.schema";
 
 // CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
@@ -415,7 +416,7 @@ export const verifyEmail = asyncHandler(
     // Grab the request query
     const { email, verificationToken } = req.query;
 
-    // User-email passed in request-query
+    // Initiate the verification process
     if (email && !verificationToken) {
       // Generate a new verification token with expiry
       const verificationToken = generateToken(
@@ -449,7 +450,7 @@ export const verifyEmail = asyncHandler(
         customEmailTemplate ||
         emailGenerator.userVerification(
           `${frontendDomain}/user/verify?token=${verificationToken}`
-        );
+        ); // TODO: The frontend website link will be taken from the client (not user) OR the Authwave frontend website link can be used
 
       // Send email to the user
       const emailResponse = await sendMail({
@@ -466,12 +467,12 @@ export const verifyEmail = asyncHandler(
           new ApiResponse(
             responseType.INITIATED.code,
             responseType.INITIATED.type,
-            "Please check your registered email (within 10 minutes) to continue verification.",
+            "Please check your registered email (within 15 minutes) to continue verification.",
             {}
           )
         );
     }
-    // Verification token passed in request-query
+    // Complete the verification process
     else if (verificationToken && !email) {
       // Decode the verification token
       const decodedToken = jwt.decode(String(verificationToken)) as {
@@ -481,7 +482,6 @@ export const verifyEmail = asyncHandler(
       } | null;
 
       const userIdFromToken = decodedToken?.userId;
-      const projectIdFromToken = decodedToken?.projectId;
 
       if (userIdFromToken != userId) {
         throw new ApiError(
@@ -533,7 +533,165 @@ export const verifyEmail = asyncHandler(
 
 // SECURED ROUTE: RESET PASSWORD
 export const resetPassword = asyncHandler(
-  async (req: IRequest, res: Response) => {}
+  async (req: IRequest, res: Response) => {
+    // Project-Validation middleware: Validate the project
+    const projectId = req.project?.id;
+    const projectFromDB: IProject | null = await Project.findById(projectId);
+    if (!projectFromDB) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "Corresponding project not found in the database"
+      );
+    }
+
+    // User-auth middleware: Authenticate the user
+    const userId = req.user?.id;
+    const userFromDB: IUser | null = await User.findById(userId);
+    if (!userFromDB) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "User (corresponding to the browser cookies) not found in the database."
+      );
+    }
+
+    // Get the request-queries
+    const { resetPasswordToken, initiate } = req.query;
+
+    // Initiate the Password-reset process
+    if (initiate && !resetPasswordToken) {
+      // Generate a new token
+      const resetPasswordToken = generateToken(
+        {
+          userId: userFromDB._id,
+          email: userFromDB.email,
+          projectId: userFromDB.projectId,
+        },
+        env.token.resetPasswordToken.secret,
+        env.token.resetPasswordToken.expiry
+      );
+      // Generate token expiry in JS-Date format
+      const resetPasswordTokenExpiry = new Date(
+        new Date().getTime() + 15 * 60 * 1000
+      );
+
+      // Store the token and expiry in the user-document
+      userFromDB.resetPasswordToken = resetPasswordToken;
+      userFromDB.resetPasswordTokenExpiry = resetPasswordTokenExpiry;
+      await userFromDB.save();
+
+      // Generate the email to be sent to the user inbox (either default or custom)
+      const resetPasswordEmail =
+        projectFromDB.config.emailTemplates?.resetPassword ||
+        emailGenerator.resetPassword(
+          `${frontendDomain}/user/reset-password?token=${resetPasswordToken}`
+        ); // TODO: The frontend website link will be taken from the client (not user) OR the Authwave frontend website link can be used
+
+      // Send email to the user
+      const emailResponse = await sendMail({
+        organization: `${ORG_NAME} <${ORG_EMAIL}>`,
+        userEmail: userFromDB.email,
+        subject:
+          "Password Reset Request for Your AuthWave Account – Action Required",
+        template: resetPasswordEmail,
+      });
+
+      // Send response
+      res
+        .status(responseType.INITIATED.code)
+        .json(
+          new ApiResponse(
+            responseType.INITIATED.code,
+            responseType.INITIATED.type,
+            "Please check your registered email (within 15 minutes) to continue with the password reset",
+            {}
+          )
+        );
+    }
+
+    // Complete the Password-reset process
+    else if (resetPasswordToken && !initiate) {
+      // Get the new password from the request-body
+      const { newPassword } = req.body;
+      if (!newPassword) {
+        throw new ApiError(
+          responseType.UNSUCCESSFUL.code,
+          responseType.UNSUCCESSFUL.type,
+          "New Password not found in the request body"
+        );
+      }
+
+      // Validate Password-schema
+      const isPasswordValid = ZPassword.safeParse(newPassword);
+      if (!isPasswordValid.success) {
+        throw new ApiError(
+          responseType.INVALID_FORMAT.code,
+          responseType.INVALID_FORMAT.type,
+          "Please provide a valid password that conforms to the prescribed format.",
+          isPasswordValid.error.errors
+        );
+      }
+
+      // Decode the verification token
+      const decodedToken = jwt.decode(String(resetPasswordToken)) as {
+        projectId: string;
+        userId: string;
+        email: string;
+      } | null;
+
+      const userIdFromToken = decodedToken?.userId;
+
+      if (userIdFromToken != userId) {
+        throw new ApiError(
+          responseType.TOKEN_INVALID.code,
+          responseType.TOKEN_INVALID.type,
+          "Mismatch in User-IDs in token and in browser cookies"
+        );
+      }
+      if (resetPasswordToken !== userFromDB.resetPasswordToken) {
+        throw new ApiError(
+          responseType.TOKEN_INVALID.code,
+          responseType.TOKEN_INVALID.type,
+          "The reset-password token in database doesn't match with the provided token"
+        );
+      }
+      if (userFromDB.resetPasswordTokenExpiry! < new Date()) {
+        throw new ApiError(
+          responseType.TOKEN_EXPIRED.code,
+          responseType.TOKEN_EXPIRED.type,
+          "Initiate the password-reset process again."
+        );
+      }
+
+      // Update the user-document
+      userFromDB.password = newPassword;
+      userFromDB.resetPasswordToken = undefined;
+      userFromDB.resetPasswordTokenExpiry = undefined;
+      await userFromDB.save();
+
+      // Send response
+      res
+        .status(responseType.PASSWORD_RESET_SUCCESSFUL.code)
+        .json(
+          new ApiResponse(
+            responseType.PASSWORD_RESET_SUCCESSFUL.code,
+            responseType.PASSWORD_RESET_SUCCESSFUL.type,
+            "User Password has been reset successfully",
+            {}
+          )
+        );
+    }
+
+    // Send error response
+    else {
+      throw new ApiError(
+        responseType.INVALID_FORMAT.code,
+        responseType.INVALID_FORMAT.type,
+        "Request query parameters not sent correctly"
+      );
+    }
+  }
 );
 
 /*

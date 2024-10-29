@@ -8,9 +8,9 @@ export const responseType = {
     code: 200,
     type: "SUCCESSFUL",
   },
-  PASSWORD_RESETTED: {
+  PASSWORD_RESET_SUCCESSFUL: {
     code: 200,
-    type: "PASSWORD_RESETTED",
+    type: "PASSWORD_RESET_SUCCESSFUL",
   },
   CONNECTION_SUCCESSFUL: {
     code: 200,
@@ -150,6 +150,10 @@ export const env = {
     },
     verificationToken: {
       secret: String(process.env.VERIFICATION_TOKEN_SECRET),
+      expiry: "10m",
+    },
+    resetPasswordToken: {
+      secret: String(process.env.RESET_PASSWORD_TOKEN_SECRET),
       expiry: "10m",
     },
   },
