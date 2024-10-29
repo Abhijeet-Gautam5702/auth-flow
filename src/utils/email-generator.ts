@@ -144,7 +144,8 @@ export class EmailGenerator {
             </div>
         </body>
         </html>
-        `;}
+        `;
+  }
 
   magicURLonEmail(link: string) {}
 

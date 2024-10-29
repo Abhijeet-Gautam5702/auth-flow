@@ -17,7 +17,7 @@ import { ApiResponse } from "../utils/custom-api-response";
 import { filterObject } from "../utils/filter-object";
 import { generateToken } from "../utils/token-generator";
 import { Session } from "../models/session.model";
-import { IProject, IRequest, IUser } from "../types/types";
+import { IAdmin, IProject, IRequest, ISession, IUser } from "../types/types";
 import { parseUserAgent } from "../utils/user-agent-parser";
 import { Project } from "../models/project.model";
 import { sendMail } from "../utils/mailer";
@@ -181,6 +181,7 @@ export const createLoginSession = asyncHandler(
     const accessToken = generateToken(
       {
         userId: userFromDB._id,
+        projectId:req.project?.id,
         email: userFromDB.email,
         username: userFromDB.username,
       },
@@ -190,6 +191,7 @@ export const createLoginSession = asyncHandler(
     const refreshToken = generateToken(
       {
         userId: userFromDB._id,
+        projectId:req.project?.id,
         email: userFromDB.email,
         username: userFromDB.username,
       },
@@ -220,7 +222,7 @@ export const createLoginSession = asyncHandler(
       NOTE: Multiple login sessions can be made but there can be only one login-session from one user-agent
     */
     const sessionFromDB = await Session.findOne({
-      $and: [{ userId: userFromDB._id },{details}],
+      $and: [{ userId: userFromDB._id }, { details }],
     });
     if (sessionFromDB) {
       throw new ApiError(
@@ -229,7 +231,6 @@ export const createLoginSession = asyncHandler(
         "There exists a login session corresponding to this user-agent in the database"
       );
     }
-    console.log("sessionFromDB = ", sessionFromDB)
 
     // Create a new session-document corresponding to the user-Id
     const createdSession = await Session.create({
@@ -710,7 +711,117 @@ export const resetPassword = asyncHandler(
   }
 );
 
-// SECURED ROUTE: LOGIN USING MAGIC-URL
+// REFRESH THE EXPIRED ACCESS TOKEN
+export const refreshAccessToken = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Get the refresh token from the request-headers or browser cookies
+    const refreshToken =
+      req.headers.authorization?.replace("Bearer ", "") ||
+      req.cookies["user-refresh-token"];
+    if (!refreshToken) {
+      throw new ApiError(
+        responseType.REFRESH_TOKEN_INVALID.code,
+        responseType.REFRESH_TOKEN_INVALID.type,
+        "Refresh token not found in browser cookies or request headers"
+      );
+    }
+
+    // Decode the refresh token and get the userId
+    const decodedToken = jwt.decode(refreshToken) as {
+      userId: string;
+      projectId:string;
+    } | null;
+    if (!decodedToken || !decodedToken.userId) {
+      throw new ApiError(
+        responseType.REFRESH_TOKEN_INVALID.code,
+        responseType.REFRESH_TOKEN_INVALID.type,
+        "User-ID could not be fetched from the refresh token"
+      );
+    }
+
+    // Check if the project exists in the database
+    const projectId = decodedToken.projectId;
+    const projectFromDB:IProject|null=await Project.findById(projectId);
+    if (!projectFromDB) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "Project corresponding to the refresh token not found in the database"
+      );
+    }
+
+    // Check if the user exists in the database
+    const userId = decodedToken.userId;
+    const userFromDB: IUser | null = await User.findById(userId).select(
+      "-password"
+    );
+    if (!userFromDB) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "User corresponding to the refresh token not found in the database"
+      );
+    }
+
+    // Check if the user-login-session exists in the database
+    const sessionFromDB:ISession|null = await Session.findOne({refreshToken});
+    if (!sessionFromDB) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "Login session corresponding to provided refresh token not found in the database"
+      );
+    }
+
+    // Verify the expiry of the refresh token from the session-document in the database
+    if (sessionFromDB.refreshTokenExpiry < new Date()) {
+      throw new ApiError(
+        responseType.REFRESH_TOKEN_EXPIRED.code,
+        responseType.REFRESH_TOKEN_EXPIRED.type,
+        "Please log in again using credentials"
+      );
+    }
+
+    // Generate a new access token
+    const accessToken = generateToken(
+      {
+        userId,
+        email: userFromDB.email,
+      },
+      env.token.accessToken.secret,
+      env.token.accessToken.expiry
+    );
+    // Generate a new access token expiry
+    const accessTokenExpiry = new Date(
+      new Date().getTime() + 24 * 60 * 60 * 1000
+    );
+
+    // Update the token in session document
+    sessionFromDB.accessToken = accessToken;
+    sessionFromDB.accessTokenExpiry = accessTokenExpiry;
+    await sessionFromDB.save();
+
+    // Set browser cookies and send response
+    res
+      .status(responseType.SUCCESSFUL.code)
+      .cookie("user-access-token", accessToken, {
+        ...cookieOptions,
+        maxAge: 1 * 24 * 60 * 60 * 1000,
+      })
+      .json(
+        new ApiResponse(
+          responseType.SUCCESSFUL.code,
+          responseType.SUCCESSFUL.type,
+          "Access token has been refreshed successfully",
+          sessionFromDB
+        )
+      );
+  }
+);
+
+// AUTHENTICATE USING MAGIC-URL
+
+// AUTHENTICATE USING OTP ON EMAILS
 
 /*
     AUTHENTICATION FEATURES

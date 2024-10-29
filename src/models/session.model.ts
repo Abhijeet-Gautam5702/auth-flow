@@ -17,7 +17,6 @@ const SessionSchema = new Schema<ISession, ISessionModel, ISessionMethods>(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      unique: true,
     },
     accessToken: {
       type: String,

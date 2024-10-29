@@ -8,6 +8,7 @@ import {
   deleteLoginSessionByID,
   getAllLoginSessions,
   getCurrentUser,
+  refreshAccessToken,
   resetPassword,
   verifyEmail,
 } from "../controllers/user.controller";
@@ -19,6 +20,7 @@ const router = Router();
 router.route("/").get(authenticateUser, getCurrentUser);
 router.route("/create").post(createAccount);
 router.route("/delete").delete(authenticateUser, deleteAccount);
+router.route("/access-token/refresh").post(refreshAccessToken)
 
 // Endpoints related to a single session of a user
 router.route("/session/create").post(createLoginSession);

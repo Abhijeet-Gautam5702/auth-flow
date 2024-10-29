@@ -257,8 +257,8 @@ export const refreshAccessToken = asyncHandler(
     );
     if (!adminFromDB) {
       throw new ApiError(
-        responseType.REFRESH_TOKEN_INVALID.code,
-        responseType.REFRESH_TOKEN_INVALID.type,
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
         "Admin corresponding to the refresh token not found in the database"
       );
     }
