@@ -25,7 +25,7 @@ export const parseUserAgent = (userAgent: string): UserAgent => {
 
   return {
     userAgent: completeUserAgent,
-    deviceType,
     os: operatingSystem,
+    deviceType,
   };
 };

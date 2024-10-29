@@ -215,6 +215,22 @@ export const createLoginSession = asyncHandler(
     }
     const details = parseUserAgent(userAgent);
 
+    // Check if another login-session from the same device already exists
+    /*
+      NOTE: Multiple login sessions can be made but there can be only one login-session from one user-agent
+    */
+    const sessionFromDB = await Session.findOne({
+      $and: [{ userId: userFromDB._id },{details}],
+    });
+    if (sessionFromDB) {
+      throw new ApiError(
+        responseType.ALREADY_EXISTS.code,
+        responseType.ALREADY_EXISTS.type,
+        "There exists a login session corresponding to this user-agent in the database"
+      );
+    }
+    console.log("sessionFromDB = ", sessionFromDB)
+
     // Create a new session-document corresponding to the user-Id
     const createdSession = await Session.create({
       projectId: req.project?.id,
@@ -414,10 +430,10 @@ export const verifyEmail = asyncHandler(
     }
 
     // Grab the request query
-    const { email, verificationToken } = req.query;
+    const { initiate, verificationToken } = req.query;
 
     // Initiate the verification process
-    if (email && !verificationToken) {
+    if (initiate && !verificationToken) {
       // Generate a new verification token with expiry
       const verificationToken = generateToken(
         {
@@ -473,7 +489,7 @@ export const verifyEmail = asyncHandler(
         );
     }
     // Complete the verification process
-    else if (verificationToken && !email) {
+    else if (verificationToken && !initiate) {
       // Decode the verification token
       const decodedToken = jwt.decode(String(verificationToken)) as {
         projectId: string;
@@ -693,6 +709,8 @@ export const resetPassword = asyncHandler(
     }
   }
 );
+
+// SECURED ROUTE: LOGIN USING MAGIC-URL
 
 /*
     AUTHENTICATION FEATURES
