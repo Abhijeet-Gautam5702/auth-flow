@@ -35,6 +35,6 @@ router
   .delete(authenticateUser, deleteAllLoginSessions);
 
 // Endpoints related to email-sending functionalities
-router.route("/verify-email").post(authenticateUser, verifyEmail);
+router.route("/verify").post(authenticateUser, verifyEmail);
 
 export const userRouter = router;

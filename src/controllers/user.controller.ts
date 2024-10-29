@@ -2,9 +2,11 @@ import { NextFunction, Request, Response } from "express";
 import { asyncHandler } from "../utils/async-handler";
 import { ApiError } from "../utils/custom-api-error";
 import {
+  backendDomain,
   cookieOptions,
   defaultEmailTemplates,
   env,
+  frontendDomain,
   ORG_EMAIL,
   ORG_NAME,
   responseType,
@@ -19,6 +21,8 @@ import { IProject, IRequest, IUser } from "../types/types";
 import { parseUserAgent } from "../utils/user-agent-parser";
 import { Project } from "../models/project.model";
 import { sendMail } from "../utils/mailer";
+import { emailGenerator } from "../utils/email-generator";
+import jwt from "jsonwebtoken";
 
 // CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
@@ -418,6 +422,7 @@ export const verifyEmail = asyncHandler(
         {
           userId: userFromDB._id,
           email: userFromDB.email,
+          projectId: userFromDB.projectId,
         },
         env.token.verificationToken.secret,
         env.token.verificationToken.expiry
@@ -428,26 +433,30 @@ export const verifyEmail = asyncHandler(
       );
 
       // Store the token & expiry in the user-document
-      userFromDB.isVerified = true; //testing
       userFromDB.verificationToken = verificationToken;
       userFromDB.verificationTokenExpiry = verificationTokenExpiry;
       await userFromDB.save();
 
-      // Send a verification e-mail to the user acc. to the template
-      // Get the emailTemplate
+      // Find project-document & extract the email-template
       const projectFromDB: IProject | null = await Project.findById(
         userFromDB.projectId
       );
-      const emailTemplate: string =
-        projectFromDB!.config.emailTemplates?.userVerification ||
-        defaultEmailTemplates.userVerification!;
+      const customEmailTemplate =
+        projectFromDB?.config.emailTemplates?.userVerification;
 
-      // Send email using resend
+      // Generate an email to be sent to the user-inbox (either the custom one or default)
+      const userVerificationEmail =
+        customEmailTemplate ||
+        emailGenerator.userVerification(
+          `${frontendDomain}/user/verify?token=${verificationToken}`
+        );
+
+      // Send email to the user
       const emailResponse = await sendMail({
         organization: `${ORG_NAME} <${ORG_EMAIL}>`,
         userEmail: userFromDB.email,
-        subject: "Verify your email",
-        template: emailTemplate,
+        subject: "Verify your AuthWave user account",
+        template: userVerificationEmail,
       });
 
       // Send response
@@ -465,10 +474,53 @@ export const verifyEmail = asyncHandler(
     // Verification token passed in request-query
     else if (verificationToken && !email) {
       // Decode the verification token
-      // Verify the token expiry
-      // Check if the corresponding user exists in the database
+      const decodedToken = jwt.decode(String(verificationToken)) as {
+        projectId: string;
+        userId: string;
+        email: string;
+      } | null;
+
+      const userIdFromToken = decodedToken?.userId;
+      const projectIdFromToken = decodedToken?.projectId;
+
+      if (userIdFromToken != userId) {
+        throw new ApiError(
+          responseType.TOKEN_INVALID.code,
+          responseType.TOKEN_INVALID.type,
+          "Mismatch in User-IDs in verification token and in browser cookies"
+        );
+      }
+      if (verificationToken !== userFromDB.verificationToken) {
+        throw new ApiError(
+          responseType.TOKEN_INVALID.code,
+          responseType.TOKEN_INVALID.type,
+          "The verification token in database doesn't match with the provided token"
+        );
+      }
+      if (userFromDB.verificationTokenExpiry! < new Date()) {
+        throw new ApiError(
+          responseType.TOKEN_EXPIRED.code,
+          responseType.TOKEN_EXPIRED.type,
+          "Initiate the verification process again."
+        );
+      }
       // Update the user document with the verification-status
+      userFromDB.isVerified = true;
+      userFromDB.verificationToken = undefined;
+      userFromDB.verificationTokenExpiry = undefined;
+      await userFromDB.save();
+
       // Send response
+      res
+        .status(responseType.EMAIL_VERIFIED.code)
+        .json(
+          new ApiResponse(
+            responseType.EMAIL_VERIFIED.code,
+            responseType.EMAIL_VERIFIED.type,
+            "User Email has been verified successfully",
+            {}
+          )
+        );
     } else {
       throw new ApiError(
         responseType.INVALID_FORMAT.code,
