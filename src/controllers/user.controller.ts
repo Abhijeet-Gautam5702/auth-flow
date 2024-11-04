@@ -24,6 +24,8 @@ import { sendMail } from "../utils/mailer";
 import { emailGenerator } from "../utils/email-generator";
 import jwt from "jsonwebtoken";
 import { ZEmail, ZPassword } from "../schema/zod.schema";
+import { otp } from "../utils/otp";
+import mongoose from "mongoose";
 
 // CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
@@ -869,7 +871,7 @@ export const magicURLAuth = asyncHandler(
       }
 
       // Check if user already exists in the database
-      const userFromDB: IUser | null = await User.findOne({email}).select(
+      const userFromDB: IUser | null = await User.findOne({ email }).select(
         "-password"
       );
       if (userFromDB) {
@@ -900,7 +902,7 @@ export const magicURLAuth = asyncHandler(
       );
       // Create magicURLToken Expiry (in JS-format)
       const magicURLTokenExpiry = new Date(
-        new Date().getTime() + 10 * 60 * 1000
+        new Date().getTime() + 15 * 60 * 1000
       );
 
       // Update the user document with the magicURLToken and its expiry
@@ -919,12 +921,11 @@ export const magicURLAuth = asyncHandler(
       const emailResponse = await sendMail({
         organization: `${ORG_NAME} <${ORG_EMAIL}>`,
         userEmail: createdUser.email,
-        subject:
-          "Complete your Magic-URL authentication",
+        subject: "Complete your Magic-URL authentication",
         template: magicURLVerificationEmail,
       });
 
-      // Set browser cookies and send response
+      // Send response
       res
         .status(responseType.INITIATED.code)
         .json(
@@ -1079,12 +1080,250 @@ export const magicURLAuth = asyncHandler(
 );
 
 // AUTHENTICATE USING OTP ON EMAILS
+export const emailOTPAuth = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Project-Validation middleware: Validate the project
+    const projectId = req.project?.id;
+    const projectFromDB: IProject = (await Project.findById(
+      projectId
+    )) as IProject;
+
+    // Check if magic-URL is enabled in the project
+    if (!projectFromDB.config.loginMethods.OTPonEmail) {
+      throw new ApiError(
+        responseType.SERVICE_UNAVAILABLE.code,
+        responseType.SERVICE_UNAVAILABLE.type,
+        "Authentication via OTP (on Email) is not enabled by the project admin. Enable the setting to continue."
+      );
+    }
+
+    // Get the request query params
+    const { initiate, otpToken } = req.query;
+
+    // Initiate the email authentication process
+    if (initiate && !otpToken) {
+      // Get the user email from request body
+      const { email } = req.body;
+      if (!email) {
+        throw new ApiError(
+          responseType.INVALID_FORMAT.code,
+          responseType.INVALID_FORMAT.type,
+          "Email not sent correctly in the request body"
+        );
+      }
+
+      // Validate the email-schema
+      const isEmailValid = ZEmail.safeParse(email);
+      if (!isEmailValid.success) {
+        throw new ApiError(
+          responseType.INVALID_FORMAT.code,
+          responseType.INVALID_FORMAT.type,
+          "Please provide a valid email that conforms to the Email-format",
+          isEmailValid.error.errors
+        );
+      }
+
+      // If the user doesn't exist in the database, create a new user document (with email only)
+      const userFromDB: IUser = await User.findOne({ email }).select(
+        "-password"
+      );
+      if (!userFromDB) {
+        await User.create({
+          projectId,
+          username: undefined,
+          email,
+          password: undefined,
+        });
+      }
+
+      // Get the user from the database
+      const user: IUser = (await User.findOne({ email }).select(
+        "-password"
+      )) as IUser;
+      const userId = user._id as string | mongoose.Types.ObjectId;
+
+      // Create a fresh OTP
+      const newOtp = (await otp.authentication.generate({
+        userId,
+        projectId,
+      })) as { hashedOTP: string; unhashedOTP: string };
+      // Create the expiry of OTP (in JS-format)
+      const otpExpiry = new Date(new Date().getTime() + 15 * 60 * 1000);
+
+      // Update the user document with the OTP and its expiry
+      user.token = newOtp.hashedOTP;
+      user.tokenExpiry = otpExpiry;
+      await user.save();
+
+      // Generate the email to be sent to the user inbox (either default or custom)
+      const otpVerificationEmail =
+        projectFromDB.config.emailTemplates?.OTPonEmail ||
+        emailGenerator.OTPonEmail(newOtp.unhashedOTP);
+
+      // Send email to the user
+      const emailResponse = await sendMail({
+        organization: `${ORG_NAME} <${ORG_EMAIL}>`,
+        userEmail: user.email,
+        subject: "Complete your Magic-URL authentication",
+        template: otpVerificationEmail,
+      });
+
+      // Send response
+      res
+        .status(responseType.INITIATED.code)
+        .json(
+          new ApiResponse(
+            responseType.INITIATED.code,
+            responseType.INITIATED.type,
+            "OTP has been sent to your registered email.",
+            {}
+          )
+        );
+    }
+
+    // Complete the email authentication process
+    else if (otpToken && !initiate) {
+      // Decode the unhashed-OTP
+      const decodedOTP = otp.authentication.decode(otpToken as string);
+
+      // Verify the user and project details stored in the unhashed-OTP
+      const userFromDB = await User.findById(decodedOTP.userId).select(
+        "-password"
+      );
+      if (!userFromDB) {
+        throw new ApiError(
+          responseType.TOKEN_INVALID.code,
+          responseType.TOKEN_INVALID.type,
+          "Corresponding user not found in the database. Initiate the authentication process again."
+        );
+      }
+      if (String(decodedOTP.projectId) != String(projectFromDB._id)) {
+        console.log("projectId from OTP = ", decodedOTP.projectId);
+        console.log("projectId from Project = ",projectFromDB._id);
+
+        throw new ApiError(
+          responseType.NOT_FOUND.code,
+          responseType.NOT_FOUND.type,
+          "Project-ID mismatch in OTP and request headers. Initiate the authentication process again."
+        );
+      }
+      if (!userFromDB.token || !userFromDB.tokenExpiry) {
+        throw new ApiError(
+          responseType.NOT_FOUND.code,
+          responseType.NOT_FOUND.type,
+          "OTP-Token and/or OTP-expiry not found in the database. Initiate the authentication process again."
+        );
+      }
+
+      // Validate the hashedOTP (and its expiry) from the database
+      const isOTPCorrect = await otp.authentication.match(
+        otpToken as string,
+        userFromDB.token
+      );
+      if (!isOTPCorrect) {
+        throw new ApiError(
+          responseType.INCORRECT_PASSWORD.code,
+          responseType.INCORRECT_PASSWORD.type,
+          "One Time Passwords do not match. Initiate the process again."
+        );
+      }
+      if(userFromDB.tokenExpiry < new Date()){
+        throw new ApiError(
+          responseType.TOKEN_EXPIRED.code,
+          responseType.TOKEN_EXPIRED.type,
+          "Initiate the verification process again."
+        );
+      }
+
+      // Create an access token
+      const accessToken = generateToken(
+        {
+          projectId,
+          userId: decodedOTP.userId,
+          email: userFromDB.email,
+        },
+        env.token.accessToken.secret,
+        env.token.accessToken.expiry
+      );
+      // Create access token expiry (in JS-format)
+      const accessTokenExpiry = new Date(
+        new Date().getTime() + 24 * 60 * 60 * 1000
+      );
+
+      // Get the user-agent from request headers and parse it to obtain required session-details
+      const userAgent = req.headers["user-agent"];
+      if (!userAgent) {
+        throw new ApiError(
+          responseType.UNSUCCESSFUL.code,
+          responseType.UNSUCCESSFUL.type,
+          "User-Agent header missing in the request (mandatory for creating a login-session)"
+        );
+      }
+      const details = parseUserAgent(userAgent);
+
+      // Check if another login-session from the same device already exists
+      /*
+        NOTE: Multiple login sessions can be made but there can be only one login-session from one user-agent
+      */
+      const sessionFromDB = await Session.findOne({
+        $and: [{ userId: userFromDB._id }, { details }],
+      });
+      if (sessionFromDB) {
+        throw new ApiError(
+          responseType.ALREADY_EXISTS.code,
+          responseType.ALREADY_EXISTS.type,
+          "There exists a login session corresponding to this user-agent in the database"
+        );
+      }
+
+      // Create a new corresponding session
+      const createdSession: ISession = await Session.create({
+        projectId,
+        userId: userFromDB._id,
+        accessToken,
+        accessTokenExpiry,
+        refreshToken: undefined,
+        refreshTokenExpiry: undefined,
+        details,
+      });
+
+      // Remove the token and expiry from the user-document
+      userFromDB.token = undefined;
+      userFromDB.tokenExpiry = undefined;
+      await userFromDB.save();
+      
+      // Send response with browser cookie (Access token) & created session
+      res
+      .status(responseType.SUCCESSFUL.code)
+      .cookie("user-access-token", accessToken, {
+        ...cookieOptions,
+        maxAge: 1 * 24 * 60 * 60 * 1000,
+      })
+      .json(
+        new ApiResponse(
+          responseType.SUCCESSFUL.code,
+          responseType.SUCCESSFUL.type,
+          "OTP-based Authentication completed.",
+          createdSession
+        )
+      );
+    }
+
+    // Send error response
+    else {
+      throw new ApiError(
+        responseType.INVALID_FORMAT.code,
+        responseType.INVALID_FORMAT.type,
+        "Request query parameters not sent correctly"
+      );
+    }
+  }
+);
 
 // AUTHENTICATE USING OTP ON MOBILE
 
 /*
     AUTHENTICATION FEATURES
-    - USER LOGIN USING OTPs (ON EMAIL)
     - USER LOGIN USING OTPs (ON MOBILE)
 
 */
