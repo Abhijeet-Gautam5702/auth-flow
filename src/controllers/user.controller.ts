@@ -23,7 +23,7 @@ import { Project } from "../models/project.model";
 import { sendMail } from "../utils/mailer";
 import { emailGenerator } from "../utils/email-generator";
 import jwt from "jsonwebtoken";
-import { ZPassword } from "../schema/zod.schema";
+import { ZEmail, ZPassword } from "../schema/zod.schema";
 
 // CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
@@ -181,7 +181,7 @@ export const createLoginSession = asyncHandler(
     const accessToken = generateToken(
       {
         userId: userFromDB._id,
-        projectId:req.project?.id,
+        projectId: req.project?.id,
         email: userFromDB.email,
         username: userFromDB.username,
       },
@@ -191,7 +191,7 @@ export const createLoginSession = asyncHandler(
     const refreshToken = generateToken(
       {
         userId: userFromDB._id,
-        projectId:req.project?.id,
+        projectId: req.project?.id,
         email: userFromDB.email,
         username: userFromDB.username,
       },
@@ -451,8 +451,8 @@ export const verifyEmail = asyncHandler(
       );
 
       // Store the token & expiry in the user-document
-      userFromDB.verificationToken = verificationToken;
-      userFromDB.verificationTokenExpiry = verificationTokenExpiry;
+      userFromDB.token = verificationToken;
+      userFromDB.tokenExpiry = verificationTokenExpiry;
       await userFromDB.save();
 
       // Find project-document & extract the email-template
@@ -507,14 +507,14 @@ export const verifyEmail = asyncHandler(
           "Mismatch in User-IDs in verification token and in browser cookies"
         );
       }
-      if (verificationToken !== userFromDB.verificationToken) {
+      if (verificationToken !== userFromDB.token) {
         throw new ApiError(
           responseType.TOKEN_INVALID.code,
           responseType.TOKEN_INVALID.type,
           "The verification token in database doesn't match with the provided token"
         );
       }
-      if (userFromDB.verificationTokenExpiry! < new Date()) {
+      if (userFromDB.tokenExpiry! < new Date()) {
         throw new ApiError(
           responseType.TOKEN_EXPIRED.code,
           responseType.TOKEN_EXPIRED.type,
@@ -523,8 +523,8 @@ export const verifyEmail = asyncHandler(
       }
       // Update the user document with the verification-status
       userFromDB.isVerified = true;
-      userFromDB.verificationToken = undefined;
-      userFromDB.verificationTokenExpiry = undefined;
+      userFromDB.token = undefined;
+      userFromDB.tokenExpiry = undefined;
       await userFromDB.save();
 
       // Send response
@@ -594,8 +594,8 @@ export const resetPassword = asyncHandler(
       );
 
       // Store the token and expiry in the user-document
-      userFromDB.resetPasswordToken = resetPasswordToken;
-      userFromDB.resetPasswordTokenExpiry = resetPasswordTokenExpiry;
+      userFromDB.token = resetPasswordToken;
+      userFromDB.tokenExpiry = resetPasswordTokenExpiry;
       await userFromDB.save();
 
       // Generate the email to be sent to the user inbox (either default or custom)
@@ -666,14 +666,14 @@ export const resetPassword = asyncHandler(
           "Mismatch in User-IDs in token and in browser cookies"
         );
       }
-      if (resetPasswordToken !== userFromDB.resetPasswordToken) {
+      if (resetPasswordToken !== userFromDB.token) {
         throw new ApiError(
           responseType.TOKEN_INVALID.code,
           responseType.TOKEN_INVALID.type,
           "The reset-password token in database doesn't match with the provided token"
         );
       }
-      if (userFromDB.resetPasswordTokenExpiry! < new Date()) {
+      if (userFromDB.tokenExpiry! < new Date()) {
         throw new ApiError(
           responseType.TOKEN_EXPIRED.code,
           responseType.TOKEN_EXPIRED.type,
@@ -683,8 +683,8 @@ export const resetPassword = asyncHandler(
 
       // Update the user-document
       userFromDB.password = newPassword;
-      userFromDB.resetPasswordToken = undefined;
-      userFromDB.resetPasswordTokenExpiry = undefined;
+      userFromDB.token = undefined;
+      userFromDB.tokenExpiry = undefined;
       await userFromDB.save();
 
       // Send response
@@ -714,6 +714,8 @@ export const resetPassword = asyncHandler(
 // REFRESH THE EXPIRED ACCESS TOKEN
 export const refreshAccessToken = asyncHandler(
   async (req: IRequest, res: Response) => {
+    // Project validation middleware: Validate the project
+
     // Get the refresh token from the request-headers or browser cookies
     const refreshToken =
       req.headers.authorization?.replace("Bearer ", "") ||
@@ -729,7 +731,7 @@ export const refreshAccessToken = asyncHandler(
     // Decode the refresh token and get the userId
     const decodedToken = jwt.decode(refreshToken) as {
       userId: string;
-      projectId:string;
+      projectId: string;
     } | null;
     if (!decodedToken || !decodedToken.userId) {
       throw new ApiError(
@@ -741,7 +743,7 @@ export const refreshAccessToken = asyncHandler(
 
     // Check if the project exists in the database
     const projectId = decodedToken.projectId;
-    const projectFromDB:IProject|null=await Project.findById(projectId);
+    const projectFromDB: IProject | null = await Project.findById(projectId);
     if (!projectFromDB) {
       throw new ApiError(
         responseType.NOT_FOUND.code,
@@ -764,7 +766,9 @@ export const refreshAccessToken = asyncHandler(
     }
 
     // Check if the user-login-session exists in the database
-    const sessionFromDB:ISession|null = await Session.findOne({refreshToken});
+    const sessionFromDB: ISession | null = await Session.findOne({
+      refreshToken,
+    });
     if (!sessionFromDB) {
       throw new ApiError(
         responseType.NOT_FOUND.code,
@@ -785,13 +789,14 @@ export const refreshAccessToken = asyncHandler(
     // Generate a new access token
     const accessToken = generateToken(
       {
+        projectId,
         userId,
         email: userFromDB.email,
       },
       env.token.accessToken.secret,
       env.token.accessToken.expiry
     );
-    // Generate a new access token expiry
+    // Generate a new access token expiry (in JS-format)
     const accessTokenExpiry = new Date(
       new Date().getTime() + 24 * 60 * 60 * 1000
     );
@@ -820,13 +825,265 @@ export const refreshAccessToken = asyncHandler(
 );
 
 // AUTHENTICATE USING MAGIC-URL
+export const magicURLAuth = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Project Validation middleware: Validate the project
+    const projectId = req.project?.id;
+    const projectFromDB: IProject = (await Project.findById(
+      projectId
+    )) as IProject;
+
+    // Check if magic-URL is enabled in the project
+    if (!projectFromDB.config.loginMethods.magicURLonEmail) {
+      throw new ApiError(
+        responseType.SERVICE_UNAVAILABLE.code,
+        responseType.SERVICE_UNAVAILABLE.type,
+        "MagicURL Authentication is not enabled by the project admin. Enable the setting to continue."
+      );
+    }
+
+    // Get the request query parameters
+    const { initiate, magicURLToken } = req.query;
+
+    // Initiate the magicURL authentication process
+    if (initiate && !magicURLToken) {
+      // Get the user email from request body
+      const { email } = req.body;
+      if (!email) {
+        throw new ApiError(
+          responseType.INVALID_FORMAT.code,
+          responseType.INVALID_FORMAT.type,
+          "Email not sent correctly in the request body"
+        );
+      }
+
+      // Validate the email-schema
+      const isEmailValid = ZEmail.safeParse(email);
+      if (!isEmailValid.success) {
+        throw new ApiError(
+          responseType.INVALID_FORMAT.code,
+          responseType.INVALID_FORMAT.type,
+          "Please provide a valid email that conforms to the Email-format",
+          isEmailValid.error.errors
+        );
+      }
+
+      // Check if user already exists in the database
+      const userFromDB: IUser | null = await User.findOne({email}).select(
+        "-password"
+      );
+      if (userFromDB) {
+        throw new ApiError(
+          responseType.ALREADY_EXISTS.code,
+          responseType.ALREADY_EXISTS.type,
+          "User corresponding to this email already exists in the database. Please provide a different email to continue with MagicURL."
+        );
+      }
+
+      // Create a new user-document with the email only
+      const createdUser: IUser = await User.create({
+        projectId,
+        username: undefined,
+        email,
+        password: undefined,
+      });
+
+      // Create magicURLToken
+      const magicURLToken = generateToken(
+        {
+          projectId,
+          userId: createdUser._id,
+          email: createdUser.email,
+        },
+        env.token.magicURLToken.secret,
+        env.token.magicURLToken.expiry
+      );
+      // Create magicURLToken Expiry (in JS-format)
+      const magicURLTokenExpiry = new Date(
+        new Date().getTime() + 10 * 60 * 1000
+      );
+
+      // Update the user document with the magicURLToken and its expiry
+      createdUser.token = magicURLToken;
+      createdUser.tokenExpiry = magicURLTokenExpiry;
+      await createdUser.save();
+
+      // Generate the email to be sent to the user inbox (either default or custom)
+      const magicURLVerificationEmail =
+        projectFromDB.config.emailTemplates?.magicURLonEmail ||
+        emailGenerator.magicURLonEmail(
+          `${frontendDomain}/user/auth/magic-url?magicURLToken=${magicURLToken}`
+        ); // TODO: The frontend website link will be taken from the client (not user) OR the Authwave frontend website link can be used
+
+      // Send email to the user
+      const emailResponse = await sendMail({
+        organization: `${ORG_NAME} <${ORG_EMAIL}>`,
+        userEmail: createdUser.email,
+        subject:
+          "Complete your Magic-URL authentication",
+        template: magicURLVerificationEmail,
+      });
+
+      // Set browser cookies and send response
+      res
+        .status(responseType.INITIATED.code)
+        .json(
+          new ApiResponse(
+            responseType.INITIATED.code,
+            responseType.INITIATED.type,
+            "Magic-URL sent to your registered email.",
+            {}
+          )
+        );
+    }
+
+    // Complete the magicURL authentication process
+    else if (magicURLToken && !initiate) {
+      const decodedToken = jwt.decode(String(magicURLToken)) as {
+        userId: string;
+        projectId: string;
+        email: string;
+      } | null;
+      if (!decodedToken) {
+        throw new ApiError(
+          responseType.TOKEN_INVALID.code,
+          responseType.TOKEN_INVALID.type,
+          "Please provide a valid Magic-URL Token"
+        );
+      }
+
+      const userFromDB: IUser = await User.findById(decodedToken.userId).select(
+        "-password"
+      );
+      if (!userFromDB) {
+        throw new ApiError(
+          responseType.NOT_FOUND.code,
+          responseType.NOT_FOUND.type,
+          "User corresponding to the Magic-URL token not found in the database. Initiate the Magic-URL authentication process again."
+        );
+      }
+      if (userFromDB.token !== magicURLToken) {
+        throw new ApiError(
+          responseType.TOKEN_INVALID.code,
+          responseType.TOKEN_INVALID.type,
+          "Magic-URL tokens in the database does not match with the token provided"
+        );
+      }
+      if (userFromDB.tokenExpiry! < new Date()) {
+        throw new ApiError(
+          responseType.TOKEN_EXPIRED.code,
+          responseType.TOKEN_EXPIRED.type,
+          "Initiate the verification process again."
+        );
+      }
+
+      // Create access and refresh tokens
+      const accessToken = generateToken(
+        {
+          projectId,
+          userId: userFromDB._id,
+          email: userFromDB.email,
+        },
+        env.token.accessToken.secret,
+        env.token.accessToken.expiry
+      );
+      const refreshToken = generateToken(
+        {
+          projectId,
+          userId: userFromDB._id,
+          email: userFromDB.email,
+        },
+        env.token.accessToken.secret,
+        env.token.accessToken.expiry
+      );
+      // Generate new token expiries (in JS-format)
+      const accessTokenExpiry = new Date(
+        new Date().getTime() + 24 * 60 * 60 * 1000
+      );
+      const refreshTokenExpiry = new Date(
+        new Date().getTime() + 30 * 24 * 60 * 60 * 1000
+      );
+
+      // Get the user-agent from request headers and parse it to obtain required session-details
+      const userAgent = req.headers["user-agent"];
+      if (!userAgent) {
+        throw new ApiError(
+          responseType.UNSUCCESSFUL.code,
+          responseType.UNSUCCESSFUL.type,
+          "User-Agent header missing in the request (mandatory for creating a login-session)"
+        );
+      }
+      const details = parseUserAgent(userAgent);
+
+      // Check if another login-session from the same device already exists
+      /*
+        NOTE: Multiple login sessions can be made but there can be only one login-session from one user-agent
+      */
+      const sessionFromDB = await Session.findOne({
+        $and: [{ userId: userFromDB._id }, { details }],
+      });
+      if (sessionFromDB) {
+        throw new ApiError(
+          responseType.ALREADY_EXISTS.code,
+          responseType.ALREADY_EXISTS.type,
+          "There exists a login session corresponding to this user-agent in the database"
+        );
+      }
+
+      // Create a new corresponding session-document
+      const createdSession: ISession = await Session.create({
+        projectId,
+        userId: userFromDB._id,
+        accessToken,
+        accessTokenExpiry,
+        refreshToken,
+        refreshTokenExpiry,
+        details,
+      });
+
+      // Update the magic-URL verifications status in the user-document
+      userFromDB.token = undefined;
+      userFromDB.tokenExpiry = undefined;
+      await userFromDB.save();
+
+      // Send response with created-session
+      res
+        .status(responseType.SUCCESSFUL.code)
+        .cookie("user-access-token", accessToken, {
+          ...cookieOptions,
+          maxAge: 1 * 24 * 60 * 60 * 1000,
+        })
+        .cookie("user-refresh-token", refreshToken, {
+          ...cookieOptions,
+          maxAge: 30 * 24 * 60 * 60 * 1000,
+        })
+        .json(
+          new ApiResponse(
+            responseType.SUCCESSFUL.code,
+            responseType.SUCCESSFUL.type,
+            "Magic-URL Authentication completed.",
+            createdSession
+          )
+        );
+    }
+
+    // Send error response
+    else {
+      throw new ApiError(
+        responseType.INVALID_FORMAT.code,
+        responseType.INVALID_FORMAT.type,
+        "Request query parameters not sent correctly"
+      );
+    }
+  }
+);
 
 // AUTHENTICATE USING OTP ON EMAILS
 
+// AUTHENTICATE USING OTP ON MOBILE
+
 /*
     AUTHENTICATION FEATURES
-
-    - USER LOGIN USING MAGIC-URL (ON EMAIL)
     - USER LOGIN USING OTPs (ON EMAIL)
     - USER LOGIN USING OTPs (ON MOBILE)
 

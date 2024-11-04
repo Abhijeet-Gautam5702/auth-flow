@@ -150,12 +150,17 @@ export const env = {
     },
     verificationToken: {
       secret: String(process.env.VERIFICATION_TOKEN_SECRET),
-      expiry: "10m",
+      expiry: "15m",
     },
     resetPasswordToken: {
       secret: String(process.env.RESET_PASSWORD_TOKEN_SECRET),
-      expiry: "10m",
+      expiry: "15m",
     },
+    magicURLToken: {
+      secret: String(process.env.MAGIC_URL_TOKEN_SECRET),
+      expiry: "15m",
+    },
+
   },
   app: {
     port: Number(process.env.PORT),

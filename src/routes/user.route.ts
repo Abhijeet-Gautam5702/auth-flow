@@ -8,6 +8,7 @@ import {
   deleteLoginSessionByID,
   getAllLoginSessions,
   getCurrentUser,
+  magicURLAuth,
   refreshAccessToken,
   resetPassword,
   verifyEmail,
@@ -40,6 +41,7 @@ router
 // Endpoints related to email-sending functionalities
 router.route("/verify").post(authenticateUser, verifyEmail);
 router.route("/reset-password").post(authenticateUser, resetPassword);
+router.route("/auth/magic-url").post(magicURLAuth);
 
 
 export const userRouter = router;
