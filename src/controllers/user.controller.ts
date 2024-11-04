@@ -1325,7 +1325,6 @@ export const emailOTPAuth = asyncHandler(
 /*
     AUTHENTICATION FEATURES
     - USER LOGIN USING OTPs (ON MOBILE)
-
 */
 
 /*

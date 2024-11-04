@@ -1,6 +1,7 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import { apiRateLimiter } from "./middlewares/api-limit";
 import { API_VERSION, env } from "./constants";
 
 // Initialize express app
@@ -20,6 +21,7 @@ app.use(
     origin: env.app.corsOrigin,
   })
 );
+app.use(apiRateLimiter.overall(5 * 60 * 1000, 100));
 
 // Router imports
 import { userRouter } from "./routes/user.route";
@@ -31,6 +33,10 @@ import { authenticateAdmin } from "./middlewares/admin-auth";
 app.use(`/api/${API_VERSION}/user`, validateProject, userRouter);
 app.use(`/api/${API_VERSION}/admin`, adminRouter);
 app.use(`/api/${API_VERSION}/project`, authenticateAdmin, projectRouter);
-app.use(`/api/${API_VERSION}/projects`, authenticateAdmin, multipleProjectsRouter);
+app.use(
+  `/api/${API_VERSION}/projects`,
+  authenticateAdmin,
+  multipleProjectsRouter
+);
 
 export default app;
