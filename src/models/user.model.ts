@@ -32,7 +32,7 @@ const UserSchema = new Schema<IUser, IUserModel, IUserMethods>(
       type: String,
       trim: true,
       lowercase: true,
-      unique: true,
+      // unique: true,
       // required: true,
     },
     email: {
