@@ -33,7 +33,7 @@ const UserSchema = new Schema<IUser, IUserModel, IUserMethods>(
       trim: true,
       lowercase: true,
       unique: true,
-      required: true,
+      // required: true,
     },
     email: {
       type: String,
@@ -43,18 +43,16 @@ const UserSchema = new Schema<IUser, IUserModel, IUserMethods>(
     },
     password: {
       type: String,
-      required: true,
+      // required: true,
     },
 
     isVerified: {
       type: Boolean,
       default: false,
     },
-    verificationToken: String,
-    verificationTokenExpiry: Date,
 
-    resetPasswordToken: String,
-    resetPasswordTokenExpiry: Date,
+    token: String,
+    tokenExpiry: Date,
   },
   { timestamps: true, validateBeforeSave: true }
 );
@@ -63,7 +61,7 @@ const UserSchema = new Schema<IUser, IUserModel, IUserMethods>(
 UserSchema.pre("save", async function () {
   try {
     // Hash the password only if it was modified
-    if (this.isModified("password")) {
+    if (this.password && this.isModified("password")) {
       this.password = await bcrypt.hash(this.password, 10);
     }
   } catch (error: any) {

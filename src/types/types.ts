@@ -59,8 +59,8 @@ export interface IUserBase {
   isVerified: boolean;
   verificationToken?: string;
   verificationTokenExpiry?: Date;
-  resetPasswordToken?: string;
-  resetPasswordTokenExpiry?: Date;
+  token?: string;
+  tokenExpiry?: Date;
 }
 
 // Mongoose: Interface for User-document methods
