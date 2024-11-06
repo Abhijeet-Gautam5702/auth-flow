@@ -80,6 +80,13 @@ UserSchema.pre("save", async function () {
 UserSchema.methods.validatePassword = async function (
   password: string
 ): Promise<boolean> {
+  if(!this.password){
+    throw new ApiError(
+      responseType.UNSUCCESSFUL.code,
+      responseType.UNSUCCESSFUL.type,
+      "Ensure that correct login method is being used."
+    )
+  }
   try {
     const isPasswordCorrect = await bcrypt.compare(password,this.password);
     return isPasswordCorrect;

@@ -26,6 +26,7 @@ import jwt from "jsonwebtoken";
 import { ZEmail, ZPassword } from "../schema/zod.schema";
 import { otp } from "../utils/otp";
 import mongoose from "mongoose";
+import { accountLockout } from "../middlewares/api-limit";
 
 // CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
@@ -159,7 +160,7 @@ export const createLoginSession = asyncHandler(
 
     // Check if the user exists in the database
     const userFromDB = await User.findOne({
-      $and: [{ email }, { username }],
+      $and: [{ email }],
     });
     if (!userFromDB) {
       throw new ApiError(
@@ -172,6 +173,8 @@ export const createLoginSession = asyncHandler(
     // Validate the password
     const isPasswordCorrect = await userFromDB.validatePassword(password);
     if (!isPasswordCorrect) {
+      // Track the number of failed login attempts
+      accountLockout.handleFailedLoginAttempt(req.ip!, email);
       throw new ApiError(
         responseType.INCORRECT_PASSWORD.code,
         responseType.INCORRECT_PASSWORD.type,
@@ -1199,7 +1202,7 @@ export const emailOTPAuth = asyncHandler(
       }
       if (String(decodedOTP.projectId) != String(projectFromDB._id)) {
         console.log("projectId from OTP = ", decodedOTP.projectId);
-        console.log("projectId from Project = ",projectFromDB._id);
+        console.log("projectId from Project = ", projectFromDB._id);
 
         throw new ApiError(
           responseType.NOT_FOUND.code,
@@ -1227,7 +1230,7 @@ export const emailOTPAuth = asyncHandler(
           "One Time Passwords do not match. Initiate the process again."
         );
       }
-      if(userFromDB.tokenExpiry < new Date()){
+      if (userFromDB.tokenExpiry < new Date()) {
         throw new ApiError(
           responseType.TOKEN_EXPIRED.code,
           responseType.TOKEN_EXPIRED.type,
@@ -1291,22 +1294,22 @@ export const emailOTPAuth = asyncHandler(
       userFromDB.token = undefined;
       userFromDB.tokenExpiry = undefined;
       await userFromDB.save();
-      
+
       // Send response with browser cookie (Access token) & created session
       res
-      .status(responseType.SUCCESSFUL.code)
-      .cookie("user-access-token", accessToken, {
-        ...cookieOptions,
-        maxAge: 1 * 24 * 60 * 60 * 1000,
-      })
-      .json(
-        new ApiResponse(
-          responseType.SUCCESSFUL.code,
-          responseType.SUCCESSFUL.type,
-          "OTP-based Authentication completed.",
-          createdSession
-        )
-      );
+        .status(responseType.SUCCESSFUL.code)
+        .cookie("user-access-token", accessToken, {
+          ...cookieOptions,
+          maxAge: 1 * 24 * 60 * 60 * 1000,
+        })
+        .json(
+          new ApiResponse(
+            responseType.SUCCESSFUL.code,
+            responseType.SUCCESSFUL.type,
+            "OTP-based Authentication completed.",
+            createdSession
+          )
+        );
     }
 
     // Send error response

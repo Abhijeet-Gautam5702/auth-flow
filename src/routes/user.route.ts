@@ -15,6 +15,7 @@ import {
   verifyEmail,
 } from "../controllers/user.controller";
 import { authenticateUser } from "../middlewares/user-auth";
+import { accountLockout } from "../middlewares/api-limit";
 
 const router = Router();
 
@@ -25,12 +26,14 @@ router.route("/delete").delete(authenticateUser, deleteAccount);
 router.route("/access-token/refresh").post(refreshAccessToken);
 
 // Endpoints related to a single session of a user
-router.route("/session/create").post(createLoginSession);
 router
-  .route("/session/delete")
+  .route("/auth/session/create")
+  .post(accountLockout.checkFailedLoginAttempts, createLoginSession);
+router
+  .route("/auth/session/delete")
   .delete(authenticateUser, deleteCurrentLoginSession);
 router
-  .route("/session/delete/:sessionId")
+  .route("/auth/session/delete/:sessionId")
   .delete(authenticateUser, deleteLoginSessionByID);
 
 // Endpoints related to all sessions of a single user

@@ -209,3 +209,13 @@ export interface IMailerInput {
   subject: string;
   template: string;
 }
+
+
+/* ---------------------- ACCOUNT LOCKOUT CLASS --------------------------------------- */
+
+export type IClientIP = string;
+export type IClientUID = string;
+export type IFailedAttemptInfo = {
+  count: number;
+  lockoutExpiry?: Date;
+};
