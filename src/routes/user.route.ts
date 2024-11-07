@@ -45,7 +45,11 @@ router
 // Endpoints related to email-sending functionalities
 router.route("/verify").post(authenticateUser, verifyEmail);
 router.route("/reset-password").post(authenticateUser, resetPassword);
-router.route("/auth/magic-url").post(magicURLAuth);
-router.route("/auth/otp-on-email").post(emailOTPAuth);
+router
+  .route("/auth/magic-url")
+  .post(accountLockout.checkFailedLoginAttempts, magicURLAuth);
+router
+  .route("/auth/otp-on-email")
+  .post(accountLockout.checkFailedLoginAttempts, emailOTPAuth);
 
 export const userRouter = router;

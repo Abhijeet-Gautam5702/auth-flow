@@ -878,6 +878,8 @@ export const magicURLAuth = asyncHandler(
         "-password"
       );
       if (userFromDB) {
+        // Track the number of failed login attempts
+        accountLockout.handleFailedLoginAttempt(req.ip!, email);
         throw new ApiError(
           responseType.ALREADY_EXISTS.code,
           responseType.ALREADY_EXISTS.type,
@@ -967,6 +969,8 @@ export const magicURLAuth = asyncHandler(
         );
       }
       if (userFromDB.token !== magicURLToken) {
+        // Track the number of failed login attempts
+        accountLockout.handleFailedLoginAttempt(req.ip!, userFromDB.email);
         throw new ApiError(
           responseType.TOKEN_INVALID.code,
           responseType.TOKEN_INVALID.type,
@@ -974,6 +978,8 @@ export const magicURLAuth = asyncHandler(
         );
       }
       if (userFromDB.tokenExpiry! < new Date()) {
+        // Track the number of failed login attempts
+        accountLockout.handleFailedLoginAttempt(req.ip!, userFromDB.email);
         throw new ApiError(
           responseType.TOKEN_EXPIRED.code,
           responseType.TOKEN_EXPIRED.type,
@@ -1201,8 +1207,8 @@ export const emailOTPAuth = asyncHandler(
         );
       }
       if (String(decodedOTP.projectId) != String(projectFromDB._id)) {
-        console.log("projectId from OTP = ", decodedOTP.projectId);
-        console.log("projectId from Project = ", projectFromDB._id);
+        // Track the number of failed login attempts
+        accountLockout.handleFailedLoginAttempt(req.ip!, userFromDB.email);
 
         throw new ApiError(
           responseType.NOT_FOUND.code,
@@ -1211,6 +1217,8 @@ export const emailOTPAuth = asyncHandler(
         );
       }
       if (!userFromDB.token || !userFromDB.tokenExpiry) {
+        // Track the number of failed login attempts
+        accountLockout.handleFailedLoginAttempt(req.ip!, userFromDB.email);
         throw new ApiError(
           responseType.NOT_FOUND.code,
           responseType.NOT_FOUND.type,
@@ -1224,6 +1232,8 @@ export const emailOTPAuth = asyncHandler(
         userFromDB.token
       );
       if (!isOTPCorrect) {
+        // Track the number of failed login attempts
+        accountLockout.handleFailedLoginAttempt(req.ip!, userFromDB.email);
         throw new ApiError(
           responseType.INCORRECT_PASSWORD.code,
           responseType.INCORRECT_PASSWORD.type,
@@ -1231,6 +1241,8 @@ export const emailOTPAuth = asyncHandler(
         );
       }
       if (userFromDB.tokenExpiry < new Date()) {
+        // Track the number of failed login attempts
+        accountLockout.handleFailedLoginAttempt(req.ip!, userFromDB.email);
         throw new ApiError(
           responseType.TOKEN_EXPIRED.code,
           responseType.TOKEN_EXPIRED.type,
