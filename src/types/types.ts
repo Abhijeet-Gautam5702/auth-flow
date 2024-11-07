@@ -1,230 +1,46 @@
-import { Request } from "express";
-import mongoose, { Document, Model, Types } from "mongoose";
+export { IApiError, IApiResponse, IRequest } from "./api.types";
 
-// Utility: ApiError class
-export interface IApiError {
-  message: string;
-  errors?: any[] | any | undefined;
-  statusCode: number;
-  type: string;
-  data: null;
-  success: boolean;
-  stack?: string | undefined;
-}
+export {
+  IUser,
+  IUserBase,
+  IUserMethods,
+  IUserModel,
+} from "./model-types/user.types";
 
-// Utility: ApiResponse class
-export interface IApiResponse {
-  message: string;
-  statusCode: number;
-  data: any;
-  type: string;
-  success: boolean;
-}
+export {
+  ISession,
+  ISessionBase,
+  ISessionMethods,
+  ISessionModel,
+  DeviceType,
+  UserAgent,
+} from "./model-types/session.types";
 
-// Utility: Custom ApiRequest interface (used when a middleware attaches additional data to the HTTP Request object)
-/*
-  NOTE:
-  1. `Schema.Types.ObjectId` is used to define the type in a Schema
-  2. `**Types.ObjectId` is used to define the typescript type for ObjectId
-  3. `**Types.ObjectId()` is a method used to create an mongoose-ObjectId from a valid Hex string
-*/
-export interface IRequest extends Request {
-  project?: {
-    id?: string | Types.ObjectId;
-    key?: string;
-  };
-  user?: {
-    id?: string | Types.ObjectId;
-  };
-  admin?: {
-    id?: string | Types.ObjectId;
-  };
-  session?: {
-    id?: string | Types.ObjectId;
-    token?: string;
-  };
-}
+export {
+  IProject,
+  IProjectBase,
+  IProjectMethods,
+  IProjectModel,
+  EmailTemplateConfig,
+  LoginMethods,
+  ProjectConfig,
+  SecurityConfig,
+} from "./model-types/project.types";
 
-/* ------------------------------ USER MODEL TYPES ------------------------------------ */
+export {
+  IAdmin,
+  IAdminBase,
+  IAdminMethods,
+  IAdminModel,
+} from "./model-types/admin.types";
 
-// Mongoose: Base interface for User-document
-/*
-  NOTE: export interface IUser extends Document{ // properties } could also work, but better to separate the types
-*/
-export interface IUserBase {
-  projectId: mongoose.Schema.Types.ObjectId;
-  username: string;
-  email: string;
-  password: string;
-  isVerified: boolean;
-  verificationToken?: string;
-  verificationTokenExpiry?: Date;
-  token?: string;
-  tokenExpiry?: Date;
-}
-
-// Mongoose: Interface for User-document methods
-/* 
-  Note: Not defining the interface for document-methods, typescript will not recognize mongoose methods and throw errors
-*/
-export interface IUserMethods {
-  validatePassword(password: string): Promise<boolean>;
-}
-
-// Mongoose: Combined interface for defining the user-document type
-/* 
-  Note: This says that a mongoose user-document will have this structure 
-*/
-export interface IUser extends IUserBase, IUserMethods, Document {}
-
-// Mongoose: User model type
-/*
-  NOTE: This defines the shape of the static methods (model level operations)
-*/
-export type IUserModel = Model<IUser, {}, IUserMethods>;
-
-/* ------------------------------ SESSION MODEL TYPES ------------------------------------ */
-
-// Device-type enum
-export enum DeviceType {
-  mobile = "mobile",
-  desktop = "desktop",
-}
-
-// User-Agent interface
-export interface UserAgent {
-  userAgent: string;
-  deviceType: DeviceType;
-  os: string;
-}
-
-// Mongoose: SessionBase (base interface)
-export interface ISessionBase extends Document {
-  projectId: mongoose.Schema.Types.ObjectId;
-  userId: mongoose.Schema.Types.ObjectId;
-  accessToken: string;
-  accessTokenExpiry: Date;
-  refreshToken: string;
-  refreshTokenExpiry: Date;
-  details: UserAgent;
-}
-
-// Mongoose: Session Methods (instance methods)
-export interface ISessionMethods {}
-
-// Mongoose: Session interface (combined)
-export interface ISession extends ISessionBase, ISessionMethods, Document {}
-
-// Mongoose: Session Model interface
-export type ISessionModel = Model<ISession, {}, ISessionMethods>;
-
-/* ------------------------------ PROJECT MODEL TYPES ------------------------------------ */
-
-// LoginMethods interface
-export interface LoginMethods {
-  emailPassword: boolean;
-  OTPonEmail?: boolean;
-  OTPonMobile?: boolean;
-  magicURLonEmail?: boolean;
-}
-
-// Security interface
-export interface SecurityConfig {
-  userLimit?: number;
-  userSessionLimit?: number;
-}
-
-// EmailTemplate interface
-export interface EmailTemplateConfig {
-  userVerification?: string;
-  resetPassword?: string;
-  userLimitExceeded?: string;
-  userSessionLimitExceeded?: string;
-  OTPonEmail?: string;
-  magicURLonEmail?: string;
-}
-
-// Project config interface
-export interface ProjectConfig {
-  loginMethods: LoginMethods;
-  security?: SecurityConfig;
-  emailTemplates?: EmailTemplateConfig;
-}
-
-// Mongoose: Base interface for the Project Document
-export interface IProjectBase {
-  projectName: string;
-  projectKey: string;
-  config: ProjectConfig;
-  owner: mongoose.Schema.Types.ObjectId;
-}
-
-// Mongoose: Interface for instance methods on project documents
-export interface IProjectMethods {}
-
-// Mongoose: Combined interface for a Project Document
-export interface IProject extends IProjectBase, IProjectMethods, Document {}
-
-// Mongoose: Type for model methods on Project Model
-export type IProjectModel = Model<IProject, {}, IProjectMethods>;
-
-/* ------------------------------ ADMIN MODEL TYPES ------------------------------------ */
-
-export interface IAdminBase {
-  email: string;
-  password: string;
-  accessToken: string;
-  accessTokenExpiry: Date;
-  refreshToken: string;
-  refreshTokenExpiry: Date;
-}
-
-export interface IAdminMethods {
-  validatePassword(password: string): Promise<boolean>;
-}
-
-export interface IAdmin extends IAdminBase, IAdminMethods, Document {}
-
-export type IAdminModel = Model<IAdmin, {}, IAdminMethods>;
-
-/* ------------------------------ SECURITY-LOG MODEL TYPES ------------------------------------ */
-
-export enum EventCode {
-  PASSWORD_LOGIN,
-  OTP_AUTHENTICATION,
-  MAGIC_URL_AUTHENTICATION,
-  LOGOUT,
-  PASSWORD_RESET_REQUEST,
-  PASSWORD_RESET_COMPLETION,
-  USER_VERIFICATION_REQUEST,
-  USER_VERIFICATION_COMPLETION,
-  ACCOUNT_CREATION,
-  ACCOUNT_DELETION,
-  ACCOUNT_LOCKOUT,
-  SESSION_CREATION,
-  SESSION_TERMINATION,
-  ACCESS_DENIAL,
-}
-
-export interface ISecurityLogBase {
-  projectId: mongoose.Schema.Types.ObjectId;
-  userId: mongoose.Schema.Types.ObjectId;
-  event: {
-    code: EventCode;
-    success: boolean;
-  };
-  message?: string;
-  sessionId: mongoose.Schema.Types.ObjectId;
-}
-
-export interface ISecurityLogMethods {}
-
-export interface ISecurityLog
-  extends ISecurityLogBase,
-    ISecurityLogMethods,
-    Document {}
-
-export type ISecurityLogModel = Model<ISecurityLog, {}, ISecurityLogMethods>;
+export {
+  ISecurityLog,
+  ISecurityLogBase,
+  ISecurityLogMethods,
+  ISecurityLogModel,
+  EventCode,
+} from "./model-types/security-log.types";
 
 /* -------------------------------------------------------------------------- */
 
