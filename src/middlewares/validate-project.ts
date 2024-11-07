@@ -51,7 +51,7 @@ export const validateProject = asyncHandler(
       projectId?: string | mongoose.Schema.Types.ObjectId;
     } | null; // jwt.decode( ) always decodes the token without any error (irrespective of the expiry) & we want exactly that.
 
-    if (decodedProjectKey?.projectId != projectFromDB._id) {
+    if (String(decodedProjectKey?.projectId) != String(projectFromDB._id)) {
       throw new ApiError(
         responseType.INVALID_PROJECT_CREDENTIALS.code,
         responseType.INVALID_PROJECT_CREDENTIALS.type,

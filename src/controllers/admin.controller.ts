@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { asyncHandler } from "../utils/async-handler";
 import { ApiError } from "../utils/custom-api-error";
-import {cookieOptions, env, responseType } from "../constants";
+import { cookieOptions, env, responseType } from "../constants";
 import { validateSignupInput } from "../schema/validation";
 import { ApiResponse } from "../utils/custom-api-response";
 import { filterObject } from "../utils/filter-object";
@@ -252,9 +252,7 @@ export const refreshAccessToken = asyncHandler(
       );
     }
     const adminId = decodedToken.adminId;
-    const adminFromDB: IAdmin = await Admin.findById(adminId).select(
-      "-password"
-    );
+    const adminFromDB = await Admin.findById(adminId).select("-password");
     if (!adminFromDB) {
       throw new ApiError(
         responseType.NOT_FOUND.code,
@@ -309,4 +307,3 @@ export const refreshAccessToken = asyncHandler(
       );
   }
 );
-

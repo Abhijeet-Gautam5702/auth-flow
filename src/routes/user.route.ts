@@ -15,7 +15,7 @@ import {
   verifyEmail,
 } from "../controllers/user.controller";
 import { authenticateUser } from "../middlewares/user-auth";
-import { accountLockout } from "../middlewares/api-limit";
+import { accountLockout } from "../services/account-lockout";
 
 const router = Router();
 

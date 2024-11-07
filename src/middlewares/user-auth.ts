@@ -25,7 +25,7 @@ export const authenticateUser = asyncHandler(
     }
 
     // Check if the corresponding session-document exists in database
-    const sessionFromDB: ISession | null = await Session.findOne({
+    const sessionFromDB = await Session.findOne({
       accessToken,
     });
     if (!sessionFromDB) {
@@ -55,7 +55,7 @@ export const authenticateUser = asyncHandler(
 
     // Check if user exists in database
     const userId = decodedToken?.userId;
-    const userFromDB: IUser = await User.findById(userId).select(
+    const userFromDB = await User.findById(userId).select(
       "-password -verificationToken -resetPasswordToken"
     );
     if (!userFromDB) {
@@ -68,10 +68,10 @@ export const authenticateUser = asyncHandler(
 
     // Attach a additional object(s) to the HTTP-`req` object
     req.user = {
-      id: new Types.ObjectId(userFromDB._id as string),
+      id: userFromDB._id,
     };
     req.session = {
-      id: new Types.ObjectId(sessionFromDB._id as string),
+      id: sessionFromDB._id,
       token: accessToken,
     };
 

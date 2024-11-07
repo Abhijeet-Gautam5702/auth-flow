@@ -47,7 +47,7 @@ const SecurityLogSchema = new Schema<
   { timestamps: true, validateBeforeSave: true }
 );
 
-export const SecurityLog = model<ISecurityLog>(
-  "SecurityLog",
+export const Log = model<ISecurityLog>(
+  "Log",
   SecurityLogSchema
 );

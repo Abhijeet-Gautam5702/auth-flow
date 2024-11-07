@@ -28,7 +28,7 @@ export const authenticateAdmin = asyncHandler(
 
     // Check if the admin exists in the database
     const adminId = decodedToken?.adminId;
-    const adminFromDB: IAdmin = await Admin.findById(adminId).select(
+    const adminFromDB = await Admin.findById(adminId).select(
       "-password -refreshToken"
     );
     if (!adminFromDB) {
@@ -50,7 +50,7 @@ export const authenticateAdmin = asyncHandler(
 
     // Attach additional admin-object to HTTP-req object
     req.admin = {
-      id: new Types.ObjectId(adminFromDB._id as string),
+      id: adminFromDB._id,
     };
 
     // Pass control to next middleware/controller

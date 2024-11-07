@@ -24,9 +24,9 @@ import { sendMail } from "../utils/mailer";
 import { emailGenerator } from "../utils/email-generator";
 import jwt from "jsonwebtoken";
 import { ZEmail, ZPassword } from "../schema/zod.schema";
-import { otp } from "../utils/otp";
+import { otp } from "../services/otp";
 import mongoose from "mongoose";
-import { accountLockout } from "../middlewares/api-limit";
+import { accountLockout } from "../services/account-lockout";
 
 // CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
@@ -411,7 +411,7 @@ export const verifyEmail = asyncHandler(
     const userId = req.user?.id;
 
     // If the user is already verified => return
-    const userFromDB: IUser | null = await User.findById(userId).select(
+    const userFromDB = await User.findById(userId).select(
       "-password -refreshToken -refreshTokenExpiry -accessToken -accessTokenExpiry"
     );
     if (!userFromDB) {
@@ -569,7 +569,7 @@ export const resetPassword = asyncHandler(
 
     // User-auth middleware: Authenticate the user
     const userId = req.user?.id;
-    const userFromDB: IUser | null = await User.findById(userId);
+    const userFromDB = await User.findById(userId);
     if (!userFromDB) {
       throw new ApiError(
         responseType.NOT_FOUND.code,
@@ -771,7 +771,7 @@ export const refreshAccessToken = asyncHandler(
     }
 
     // Check if the user-login-session exists in the database
-    const sessionFromDB: ISession | null = await Session.findOne({
+    const sessionFromDB = await Session.findOne({
       refreshToken,
     });
     if (!sessionFromDB) {
@@ -888,7 +888,7 @@ export const magicURLAuth = asyncHandler(
       }
 
       // Create a new user-document with the email only
-      const createdUser: IUser = await User.create({
+      const createdUser = await User.create({
         projectId,
         username: undefined,
         email,
@@ -958,7 +958,7 @@ export const magicURLAuth = asyncHandler(
         );
       }
 
-      const userFromDB: IUser = await User.findById(decodedToken.userId).select(
+      const userFromDB = await User.findById(decodedToken.userId).select(
         "-password"
       );
       if (!userFromDB) {
@@ -1093,12 +1093,10 @@ export const emailOTPAuth = asyncHandler(
   async (req: IRequest, res: Response) => {
     // Project-Validation middleware: Validate the project
     const projectId = req.project?.id;
-    const projectFromDB: IProject = (await Project.findById(
-      projectId
-    )) as IProject;
+    const projectFromDB = await Project.findById(projectId);
 
     // Check if magic-URL is enabled in the project
-    if (!projectFromDB.config.loginMethods.OTPonEmail) {
+    if (!projectFromDB?.config.loginMethods.OTPonEmail) {
       throw new ApiError(
         responseType.SERVICE_UNAVAILABLE.code,
         responseType.SERVICE_UNAVAILABLE.type,
@@ -1133,9 +1131,7 @@ export const emailOTPAuth = asyncHandler(
       }
 
       // If the user doesn't exist in the database, create a new user document (with email only)
-      const userFromDB: IUser = await User.findOne({ email }).select(
-        "-password"
-      );
+      const userFromDB = await User.findOne({ email }).select("-password");
       if (!userFromDB) {
         await User.create({
           projectId,
@@ -1146,9 +1142,14 @@ export const emailOTPAuth = asyncHandler(
       }
 
       // Get the user from the database
-      const user: IUser = (await User.findOne({ email }).select(
-        "-password"
-      )) as IUser;
+      const user = await User.findOne({ email }).select("-password");
+      if (!user) {
+        throw new ApiError(
+          responseType.UNSUCCESSFUL.code,
+          responseType.UNSUCCESSFUL.type,
+          "User could not be created in the database."
+        );
+      }
       const userId = user._id as string | mongoose.Types.ObjectId;
 
       // Create a fresh OTP
