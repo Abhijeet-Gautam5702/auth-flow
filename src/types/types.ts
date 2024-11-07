@@ -25,8 +25,8 @@ export interface IApiResponse {
 /*
   NOTE:
   1. `Schema.Types.ObjectId` is used to define the type in a Schema
-  2. `Types.ObjectId` is used to define the typescript type for ObjectId
-  3. `Types.ObjectId()` is used to create an mongoose-ObjectId from a valid Hex string
+  2. `**Types.ObjectId` is used to define the typescript type for ObjectId
+  3. `**Types.ObjectId()` is a method used to create an mongoose-ObjectId from a valid Hex string
 */
 export interface IRequest extends Request {
   project?: {
@@ -168,7 +168,7 @@ export interface IProject extends IProjectBase, IProjectMethods, Document {}
 // Mongoose: Type for model methods on Project Model
 export type IProjectModel = Model<IProject, {}, IProjectMethods>;
 
-/* ------------------------------ PROJECT MODEL TYPES ------------------------------------ */
+/* ------------------------------ ADMIN MODEL TYPES ------------------------------------ */
 
 export interface IAdminBase {
   email: string;
@@ -186,6 +186,45 @@ export interface IAdminMethods {
 export interface IAdmin extends IAdminBase, IAdminMethods, Document {}
 
 export type IAdminModel = Model<IAdmin, {}, IAdminMethods>;
+
+/* ------------------------------ SECURITY-LOG MODEL TYPES ------------------------------------ */
+
+export enum EventCode {
+  PASSWORD_LOGIN,
+  OTP_AUTHENTICATION,
+  MAGIC_URL_AUTHENTICATION,
+  LOGOUT,
+  PASSWORD_RESET_REQUEST,
+  PASSWORD_RESET_COMPLETION,
+  USER_VERIFICATION_REQUEST,
+  USER_VERIFICATION_COMPLETION,
+  ACCOUNT_CREATION,
+  ACCOUNT_DELETION,
+  ACCOUNT_LOCKOUT,
+  SESSION_CREATION,
+  SESSION_TERMINATION,
+  ACCESS_DENIAL,
+}
+
+export interface ISecurityLogBase {
+  projectId: mongoose.Schema.Types.ObjectId;
+  userId: mongoose.Schema.Types.ObjectId;
+  event: {
+    code: EventCode;
+    success: boolean;
+  };
+  message?: string;
+  sessionId: mongoose.Schema.Types.ObjectId;
+}
+
+export interface ISecurityLogMethods {}
+
+export interface ISecurityLog
+  extends ISecurityLogBase,
+    ISecurityLogMethods,
+    Document {}
+
+export type ISecurityLogModel = Model<ISecurityLog, {}, ISecurityLogMethods>;
 
 /* -------------------------------------------------------------------------- */
 
@@ -209,7 +248,6 @@ export interface IMailerInput {
   subject: string;
   template: string;
 }
-
 
 /* ---------------------- ACCOUNT LOCKOUT CLASS --------------------------------------- */
 

@@ -1345,7 +1345,5 @@ export const emailOTPAuth = asyncHandler(
 /*
     SECURITY FEATURES
 
-    - RATE LIMITING OF HTTP REQUESTS 
-    - ACCOUNT LOCKOUT (FOR SOME TIME) ON CERTAIN NUMBER OF FAILED LOGIN ATTEMPTS
     - SECURITY AUDITING (log the activities on the user dashboard & admin dashboards)
 */
