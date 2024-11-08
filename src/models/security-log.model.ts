@@ -25,7 +25,6 @@ const SecurityLogSchema = new Schema<
     sessionId: {
       type: Schema.Types.ObjectId,
       ref: "Session",
-      required: true,
     },
     event: {
       code: {
@@ -47,7 +46,7 @@ const SecurityLogSchema = new Schema<
   { timestamps: true, validateBeforeSave: true }
 );
 
-export const Log = model<ISecurityLog>(
-  "Log",
-  SecurityLogSchema
-);
+// Create an index on `createdAt` property (descending order) for the documents to get sorted according to the `createdAt` property
+SecurityLogSchema.index({ createdAt: -1 });
+
+export const Log = model<ISecurityLog>("Log", SecurityLogSchema);

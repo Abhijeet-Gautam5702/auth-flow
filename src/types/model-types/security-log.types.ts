@@ -7,16 +7,14 @@ export enum EventCode {
     OTP_AUTHENTICATION,
     MAGIC_URL_AUTHENTICATION,
     LOGOUT,
-    PASSWORD_RESET_REQUEST,
-    PASSWORD_RESET_COMPLETION,
-    USER_VERIFICATION_REQUEST,
-    USER_VERIFICATION_COMPLETION,
+    PASSWORD_RESET,
+    USER_VERIFICATION,
     ACCOUNT_CREATION,
     ACCOUNT_DELETION,
     ACCOUNT_LOCKOUT,
-    SESSION_CREATION,
-    SESSION_TERMINATION,
-    ACCESS_DENIAL,
+    // SESSION_CREATION,
+    // SESSION_TERMINATION,
+    // ACCESS_DENIAL,
   }
   
   export interface ISecurityLogBase {
@@ -27,7 +25,7 @@ export enum EventCode {
       success: boolean;
     };
     message?: string;
-    sessionId: mongoose.Schema.Types.ObjectId;
+    sessionId?: mongoose.Schema.Types.ObjectId;
   }
   
   export interface ISecurityLogMethods {}
