@@ -39,7 +39,7 @@ class OTP {
   };
 
   // Authentication-related OTP methods
-  authentication = {
+  public authentication = {
     generate: async (payload: {
       userId: mongoose.Types.ObjectId | string | undefined;
       projectId: mongoose.Types.ObjectId | string | undefined;
