@@ -24,9 +24,9 @@ import { sendMail } from "../utils/mailer";
 import { emailGenerator } from "../utils/email-generator";
 import jwt from "jsonwebtoken";
 import { ZEmail, ZPassword } from "../schema/zod.schema";
-import { otp } from "../services/otp";
+import { otp } from "../features/otp";
 import mongoose from "mongoose";
-import { accountLockout } from "../services/account-lockout";
+import { accountLockout } from "../features/account-lockout";
 
 // CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
