@@ -28,7 +28,7 @@ class SecurityLog {
   private logStorageDays: number = 30;
   private defaultItemCount: number = 10;
 
-  // Helper function to fetch security-logs using different queries
+  // Helper function to fetch security-logs using query as input
   private helper_getLogs = async <T extends ILogInput>(
     input: T,
     query: object
@@ -39,7 +39,14 @@ class SecurityLog {
 
       // Calculate the total number of documents corresponding to the given event-code (within the project)
       const totalDocs = await Log.countDocuments(query);
-      if (Math.ceil(totalDocs / input.queryItemCount) < input.page) {
+      if(!totalDocs){
+        throw new ApiError(
+          responseType.UNSUCCESSFUL.code,
+          responseType.UNSUCCESSFUL.type,
+          `No docs found for the requested Event-Code: ${input.eventCode}`
+        )
+      }
+      if (totalDocs && Math.ceil(totalDocs / input.queryItemCount) < input.page) {
         throw new ApiError(
           responseType.UNSUCCESSFUL.code,
           responseType.UNSUCCESSFUL.type,
@@ -63,12 +70,7 @@ class SecurityLog {
       };
     } catch (error: any) {
       logger(responseType.SERVER_ERROR.type, error.message);
-      throw new ApiError(
-        responseType.SERVER_ERROR.code,
-        responseType.SERVER_ERROR.type,
-        `Could not get User-Logs.`,
-        error
-      );
+      throw error;
     }
   };
 
@@ -81,6 +83,9 @@ class SecurityLog {
     sessionId,
   }: IEventInput) => {
     try {
+      // Clear all expired logs 
+      await this.clearExpiredLogs();
+
       const userFromDB = await User.findById(userId).select("-password");
       if (!userFromDB) {
         throw new ApiError(
@@ -144,9 +149,6 @@ class SecurityLog {
   };
 
   // Get user logs (with date filter and pagination)
-  /*
-    NOTE: TypeScript doesn't throw an error even if some of the properties are not present in the argument because it performs type-checking on the destructured properties only. It assumes that there might be some properties in the argument object which are not being destructured. Hence it doesn't throw any error.
-  */
   /*
     `Omit<ILogInput, "eventCode">`
 

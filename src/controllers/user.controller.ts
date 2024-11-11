@@ -1595,10 +1595,3 @@ export const emailOTPAuth = asyncHandler(
     }
   }
 );
-
-// AUTHENTICATE USING OTP ON MOBILE
-
-/*
-    AUTHENTICATION FEATURES
-    - USER LOGIN USING OTPs (ON MOBILE)
-*/

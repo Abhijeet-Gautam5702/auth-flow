@@ -39,6 +39,6 @@ app.use(
   authenticateAdmin,
   multipleProjectsRouter
 );
-app.use(`/api/${API_VERSION}/logs`, securityLogRouter);
+app.use(`/api/${API_VERSION}/logs`, validateProject, securityLogRouter);
 
 export default app;

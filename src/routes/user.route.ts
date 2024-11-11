@@ -16,6 +16,7 @@ import {
 } from "../controllers/user.controller";
 import { authenticateUser } from "../middlewares/user-auth";
 import { accountLockout } from "../features/account-lockout";
+import { getLogsByUserId, getUserLogsByEventCode } from "../controllers/security-log.controller";
 
 const router = Router();
 
@@ -24,6 +25,8 @@ router.route("/").get(authenticateUser, getCurrentUser);
 router.route("/create").post(createAccount);
 router.route("/delete").delete(authenticateUser, deleteAccount);
 router.route("/access-token/refresh").post(refreshAccessToken);
+router.route("/logs/all").get(authenticateUser, getLogsByUserId);
+router.route("/logs").get(authenticateUser, getUserLogsByEventCode);
 
 // Endpoints related to a single session of a user
 router

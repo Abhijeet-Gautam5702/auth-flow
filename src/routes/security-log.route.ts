@@ -5,7 +5,7 @@ import { validateProject } from "../middlewares/validate-project";
 
 const router = Router();
 
-router.route("/user").get(authenticateAdmin, validateProject, getLogsByUserId);
-router.route("/event").get(authenticateAdmin, validateProject, getLogsByEventCode);
+router.route("/user").get(authenticateAdmin, getLogsByUserId);
+router.route("/event").get(authenticateAdmin, getLogsByEventCode);
 
 export const securityLogRouter = router;
