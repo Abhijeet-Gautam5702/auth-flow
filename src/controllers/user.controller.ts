@@ -17,7 +17,14 @@ import { ApiResponse } from "../utils/custom-api-response";
 import { filterObject } from "../utils/filter-object";
 import { generateToken } from "../utils/token-generator";
 import { Session } from "../models/session.model";
-import { IAdmin, IProject, IRequest, ISession, IUser } from "../types/types";
+import {
+  EventCode,
+  IAdmin,
+  IProject,
+  IRequest,
+  ISession,
+  IUser,
+} from "../types/types";
 import { parseUserAgent } from "../utils/user-agent-parser";
 import { Project } from "../models/project.model";
 import { sendMail } from "../utils/mailer";
@@ -27,6 +34,7 @@ import { ZEmail, ZPassword } from "../schema/zod.schema";
 import { otp } from "../features/otp";
 import mongoose from "mongoose";
 import { accountLockout } from "../features/account-lockout";
+import { securityLog } from "../features/security-log";
 
 // CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
@@ -175,6 +183,14 @@ export const createLoginSession = asyncHandler(
     if (!isPasswordCorrect) {
       // Track the number of failed login attempts
       accountLockout.handleFailedLoginAttempt(req.ip!, email);
+      // Log an event
+      await securityLog.logEvent({
+        userId: userFromDB._id,
+        eventCode: EventCode.PASSWORD_LOGIN,
+        eventSuccess: false,
+        message:"Incorrect Password."
+      });
+      // Throw error
       throw new ApiError(
         responseType.INCORRECT_PASSWORD.code,
         responseType.INCORRECT_PASSWORD.type,
@@ -230,6 +246,13 @@ export const createLoginSession = asyncHandler(
       $and: [{ userId: userFromDB._id }, { details }],
     });
     if (sessionFromDB) {
+      // Log an event
+      await securityLog.logEvent({
+        userId: userFromDB._id,
+        eventCode: EventCode.PASSWORD_LOGIN,
+        eventSuccess: false,
+        message:'There exists a login session corresponding to this user-agent in the database.'
+      });
       throw new ApiError(
         responseType.ALREADY_EXISTS.code,
         responseType.ALREADY_EXISTS.type,
@@ -246,6 +269,13 @@ export const createLoginSession = asyncHandler(
       accessToken,
       accessTokenExpiry,
       details,
+    });
+
+    // Log an event
+    await securityLog.logEvent({
+      userId: userFromDB._id,
+      eventCode: EventCode.PASSWORD_LOGIN,
+      eventSuccess: true,
     });
 
     // Set browser cookies and send response

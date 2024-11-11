@@ -29,6 +29,7 @@ import { validateProject } from "./middlewares/validate-project";
 import { adminRouter } from "./routes/admin.route";
 import { multipleProjectsRouter, projectRouter } from "./routes/project.route";
 import { authenticateAdmin } from "./middlewares/admin-auth";
+import { securityLogRouter } from "./routes/security-log.route";
 
 app.use(`/api/${API_VERSION}/user`, validateProject, userRouter);
 app.use(`/api/${API_VERSION}/admin`, adminRouter);
@@ -38,5 +39,6 @@ app.use(
   authenticateAdmin,
   multipleProjectsRouter
 );
+app.use(`/api/${API_VERSION}/logs`, securityLogRouter);
 
 export default app;
