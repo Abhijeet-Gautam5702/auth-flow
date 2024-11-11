@@ -59,7 +59,7 @@ interface ILogValidationInput {
   endDate?: Date;
   userId?: mongoose.Types.ObjectId | string;
   projectId?: mongoose.Types.ObjectId | string;
-  eventCode?: EventCode;
+  eventCode?: string;
 }
 
 export const validateLogInput = (input: ILogValidationInput) => {

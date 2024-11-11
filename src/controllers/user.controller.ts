@@ -65,6 +65,14 @@ export const createAccount = asyncHandler(
       $or: [{ email }, { username }],
     });
     if (userFromDB) {
+      // Log an event
+      await securityLog.logEvent({
+        userId: userFromDB._id,
+        eventCode: EventCode.ACCOUNT_CREATION,
+        eventSuccess: false,
+        message: "User already exists.",
+      });
+      // Throw error
       throw new ApiError(
         responseType.ALREADY_EXISTS.code,
         responseType.ALREADY_EXISTS.type,
@@ -82,6 +90,13 @@ export const createAccount = asyncHandler(
     // Remove sensitive data from the user-data (newly created)
     /* Note: Another database call is not made to reduce the number of interactions with the Database */
     const userData = filterObject(createdUser, [], ["password"]);
+
+    // Log an event
+    await securityLog.logEvent({
+      userId: createdUser._id,
+      eventCode: EventCode.ACCOUNT_CREATION,
+      eventSuccess: true,
+    });
 
     // Send response
     res
@@ -188,7 +203,7 @@ export const createLoginSession = asyncHandler(
         userId: userFromDB._id,
         eventCode: EventCode.PASSWORD_LOGIN,
         eventSuccess: false,
-        message:"Incorrect Password."
+        message: "Incorrect Password.",
       });
       // Throw error
       throw new ApiError(
@@ -251,7 +266,8 @@ export const createLoginSession = asyncHandler(
         userId: userFromDB._id,
         eventCode: EventCode.PASSWORD_LOGIN,
         eventSuccess: false,
-        message:'There exists a login session corresponding to this user-agent in the database.'
+        message:
+          "There exists a login session corresponding to this user-agent in the database.",
       });
       throw new ApiError(
         responseType.ALREADY_EXISTS.code,
@@ -270,12 +286,14 @@ export const createLoginSession = asyncHandler(
       accessTokenExpiry,
       details,
     });
+    const sessionId = createdSession._id;
 
     // Log an event
     await securityLog.logEvent({
       userId: userFromDB._id,
       eventCode: EventCode.PASSWORD_LOGIN,
       eventSuccess: true,
+      sessionId,
     });
 
     // Set browser cookies and send response
@@ -304,9 +322,17 @@ export const createLoginSession = asyncHandler(
 export const deleteCurrentLoginSession = asyncHandler(
   async (req: IRequest, res: Response) => {
     // User-Auth-Middleware: Authenticate the user
+    const userId = req.user?.id;
 
     // Delete the session-document using the access token
     await Session.findByIdAndDelete(req.session?.id);
+
+    // Log an event
+    await securityLog.logEvent({
+      userId: userId!,
+      eventCode: EventCode.LOGOUT,
+      eventSuccess: true,
+    });
 
     // Clear the browser cookies and send response
     res
@@ -335,6 +361,13 @@ export const deleteAccount = asyncHandler(
 
     // Delete the user-document from the database
     await User.findByIdAndDelete(userId);
+
+    // Log an event
+    await securityLog.logEvent({
+      userId: userId!,
+      eventCode: EventCode.ACCOUNT_DELETION,
+      eventSuccess: true,
+    });
 
     // Clear all browser cookies and send response
     res
@@ -512,6 +545,14 @@ export const verifyEmail = asyncHandler(
         template: userVerificationEmail,
       });
 
+      // Log an event
+      await securityLog.logEvent({
+        userId: userFromDB._id,
+        eventCode: EventCode.USER_VERIFICATION,
+        eventSuccess: true,
+        message: "User Verification process initated successfully.",
+      });
+
       // Send response
       res
         .status(responseType.INITIATED.code)
@@ -536,6 +577,15 @@ export const verifyEmail = asyncHandler(
       const userIdFromToken = decodedToken?.userId;
 
       if (userIdFromToken != userId) {
+        // Log an event
+        await securityLog.logEvent({
+          userId: userFromDB._id,
+          eventCode: EventCode.USER_VERIFICATION,
+          eventSuccess: false,
+          message:
+            "Mismatch in User-IDs in verification token and in browser cookies",
+        });
+        // Throw error
         throw new ApiError(
           responseType.TOKEN_INVALID.code,
           responseType.TOKEN_INVALID.type,
@@ -543,13 +593,30 @@ export const verifyEmail = asyncHandler(
         );
       }
       if (verificationToken !== userFromDB.token) {
+        // Log an event
+        await securityLog.logEvent({
+          userId: userFromDB._id,
+          eventCode: EventCode.USER_VERIFICATION,
+          eventSuccess: false,
+          message:
+            "The verification token in database doesn't match with the provided token.",
+        });
+        // Throw error
         throw new ApiError(
           responseType.TOKEN_INVALID.code,
           responseType.TOKEN_INVALID.type,
-          "The verification token in database doesn't match with the provided token"
+          "The verification token in database doesn't match with the provided token."
         );
       }
       if (userFromDB.tokenExpiry! < new Date()) {
+        // Log an event
+        await securityLog.logEvent({
+          userId: userFromDB._id,
+          eventCode: EventCode.USER_VERIFICATION,
+          eventSuccess: false,
+          message: "Verification token expired.",
+        });
+        // Throw error
         throw new ApiError(
           responseType.TOKEN_EXPIRED.code,
           responseType.TOKEN_EXPIRED.type,
@@ -561,6 +628,13 @@ export const verifyEmail = asyncHandler(
       userFromDB.token = undefined;
       userFromDB.tokenExpiry = undefined;
       await userFromDB.save();
+
+      // Log an event
+      await securityLog.logEvent({
+        userId: userFromDB._id,
+        eventCode: EventCode.USER_VERIFICATION,
+        eventSuccess: true,
+      });
 
       // Send response
       res
@@ -649,6 +723,14 @@ export const resetPassword = asyncHandler(
         template: resetPasswordEmail,
       });
 
+      // Log an event
+      await securityLog.logEvent({
+        userId: userFromDB._id,
+        eventCode: EventCode.PASSWORD_RESET,
+        eventSuccess: true,
+        message: "Password Reset process initiated.",
+      });
+
       // Send response
       res
         .status(responseType.INITIATED.code)
@@ -667,16 +749,25 @@ export const resetPassword = asyncHandler(
       // Get the new password from the request-body
       const { newPassword } = req.body;
       if (!newPassword) {
+        // Log an event
+        await securityLog.logEvent({
+          userId: userFromDB._id,
+          eventCode: EventCode.PASSWORD_RESET,
+          eventSuccess: false,
+          message: "New Password not found in the request body.",
+        });
+        // Throw error
         throw new ApiError(
           responseType.UNSUCCESSFUL.code,
           responseType.UNSUCCESSFUL.type,
-          "New Password not found in the request body"
+          "New Password not found in the request body."
         );
       }
 
       // Validate Password-schema
       const isPasswordValid = ZPassword.safeParse(newPassword);
       if (!isPasswordValid.success) {
+        // Throw error
         throw new ApiError(
           responseType.INVALID_FORMAT.code,
           responseType.INVALID_FORMAT.type,
@@ -695,6 +786,14 @@ export const resetPassword = asyncHandler(
       const userIdFromToken = decodedToken?.userId;
 
       if (userIdFromToken != userId) {
+        // Log an event
+        await securityLog.logEvent({
+          userId: userFromDB._id,
+          eventCode: EventCode.PASSWORD_RESET,
+          eventSuccess: false,
+          message: "Mismatch in User-IDs in token and in browser cookies.",
+        });
+        // Throw error
         throw new ApiError(
           responseType.TOKEN_INVALID.code,
           responseType.TOKEN_INVALID.type,
@@ -702,6 +801,15 @@ export const resetPassword = asyncHandler(
         );
       }
       if (resetPasswordToken !== userFromDB.token) {
+        // Log an event
+        await securityLog.logEvent({
+          userId: userFromDB._id,
+          eventCode: EventCode.PASSWORD_RESET,
+          eventSuccess: false,
+          message:
+            "The reset-password token in database doesn't match with the provided token.",
+        });
+        // Throw error
         throw new ApiError(
           responseType.TOKEN_INVALID.code,
           responseType.TOKEN_INVALID.type,
@@ -709,6 +817,14 @@ export const resetPassword = asyncHandler(
         );
       }
       if (userFromDB.tokenExpiry! < new Date()) {
+        // Log an event
+        await securityLog.logEvent({
+          userId: userFromDB._id,
+          eventCode: EventCode.PASSWORD_RESET,
+          eventSuccess: false,
+          message: "Password Reset Token expired.",
+        });
+        // Throw error
         throw new ApiError(
           responseType.TOKEN_EXPIRED.code,
           responseType.TOKEN_EXPIRED.type,
@@ -721,6 +837,13 @@ export const resetPassword = asyncHandler(
       userFromDB.token = undefined;
       userFromDB.tokenExpiry = undefined;
       await userFromDB.save();
+
+      // Log an event
+      await securityLog.logEvent({
+        userId: userFromDB._id,
+        eventCode: EventCode.PASSWORD_RESET,
+        eventSuccess: true,
+      });
 
       // Send response
       res
@@ -873,7 +996,7 @@ export const magicURLAuth = asyncHandler(
       throw new ApiError(
         responseType.SERVICE_UNAVAILABLE.code,
         responseType.SERVICE_UNAVAILABLE.type,
-        "MagicURL Authentication is not enabled by the project admin. Enable the setting to continue."
+        "MagicURL Authentication is not enabled by the project admin."
       );
     }
 
@@ -904,12 +1027,18 @@ export const magicURLAuth = asyncHandler(
       }
 
       // Check if user already exists in the database
-      const userFromDB: IUser | null = await User.findOne({ email }).select(
-        "-password"
-      );
+      const userFromDB = await User.findOne({ email }).select("-password");
       if (userFromDB) {
         // Track the number of failed login attempts
         accountLockout.handleFailedLoginAttempt(req.ip!, email);
+        // Log an event
+        await securityLog.logEvent({
+          userId: userFromDB._id,
+          eventCode: EventCode.MAGIC_URL_AUTHENTICATION,
+          eventSuccess: false,
+          message: "User already exists in the database",
+        });
+        // Throw error
         throw new ApiError(
           responseType.ALREADY_EXISTS.code,
           responseType.ALREADY_EXISTS.type,
@@ -960,6 +1089,14 @@ export const magicURLAuth = asyncHandler(
         template: magicURLVerificationEmail,
       });
 
+      // Log an event
+      await securityLog.logEvent({
+        userId: createdUser._id,
+        eventCode: EventCode.MAGIC_URL_AUTHENTICATION,
+        eventSuccess: true,
+        message: "Magic-URL Authentication process initiated.",
+      });
+
       // Send response
       res
         .status(responseType.INITIATED.code)
@@ -981,6 +1118,7 @@ export const magicURLAuth = asyncHandler(
         email: string;
       } | null;
       if (!decodedToken) {
+        // Throw error
         throw new ApiError(
           responseType.TOKEN_INVALID.code,
           responseType.TOKEN_INVALID.type,
@@ -1001,15 +1139,32 @@ export const magicURLAuth = asyncHandler(
       if (userFromDB.token !== magicURLToken) {
         // Track the number of failed login attempts
         accountLockout.handleFailedLoginAttempt(req.ip!, userFromDB.email);
+        // Log an event
+        await securityLog.logEvent({
+          userId: userFromDB._id,
+          eventCode: EventCode.MAGIC_URL_AUTHENTICATION,
+          eventSuccess: false,
+          message:
+            "Magic-URL tokens in the database does not match with the token provided.",
+        });
+        // Throw error
         throw new ApiError(
           responseType.TOKEN_INVALID.code,
           responseType.TOKEN_INVALID.type,
-          "Magic-URL tokens in the database does not match with the token provided"
+          "Magic-URL token in the database does not match with the token provided"
         );
       }
       if (userFromDB.tokenExpiry! < new Date()) {
         // Track the number of failed login attempts
         accountLockout.handleFailedLoginAttempt(req.ip!, userFromDB.email);
+        // Log an event
+        await securityLog.logEvent({
+          userId: userFromDB._id,
+          eventCode: EventCode.MAGIC_URL_AUTHENTICATION,
+          eventSuccess: false,
+          message: "Magic-URL Authentication Token expired.",
+        });
+        // Throw error
         throw new ApiError(
           responseType.TOKEN_EXPIRED.code,
           responseType.TOKEN_EXPIRED.type,
@@ -1063,6 +1218,14 @@ export const magicURLAuth = asyncHandler(
         $and: [{ userId: userFromDB._id }, { details }],
       });
       if (sessionFromDB) {
+        // Log an event
+        await securityLog.logEvent({
+          userId: userFromDB._id,
+          eventCode: EventCode.MAGIC_URL_AUTHENTICATION,
+          eventSuccess: false,
+          message: "Session corresponding to this User-Agent already exists.",
+        });
+        // Throw error
         throw new ApiError(
           responseType.ALREADY_EXISTS.code,
           responseType.ALREADY_EXISTS.type,
@@ -1071,7 +1234,7 @@ export const magicURLAuth = asyncHandler(
       }
 
       // Create a new corresponding session-document
-      const createdSession: ISession = await Session.create({
+      const createdSession = await Session.create({
         projectId,
         userId: userFromDB._id,
         accessToken,
@@ -1085,6 +1248,14 @@ export const magicURLAuth = asyncHandler(
       userFromDB.token = undefined;
       userFromDB.tokenExpiry = undefined;
       await userFromDB.save();
+
+      // Log an event
+      await securityLog.logEvent({
+        userId: userFromDB._id,
+        eventCode: EventCode.MAGIC_URL_AUTHENTICATION,
+        eventSuccess: true,
+        sessionId: createdSession._id,
+      });
 
       // Send response with created-session
       res
@@ -1208,6 +1379,14 @@ export const emailOTPAuth = asyncHandler(
         template: otpVerificationEmail,
       });
 
+      // Log an event
+      await securityLog.logEvent({
+        userId: userId,
+        eventCode: EventCode.OTP_AUTHENTICATION,
+        eventSuccess: true,
+        message: "OTP-on-Email Authentication process initiated.",
+      });
+
       // Send response
       res
         .status(responseType.INITIATED.code)
@@ -1231,6 +1410,7 @@ export const emailOTPAuth = asyncHandler(
         "-password"
       );
       if (!userFromDB) {
+        // Throw error
         throw new ApiError(
           responseType.TOKEN_INVALID.code,
           responseType.TOKEN_INVALID.type,
@@ -1240,7 +1420,15 @@ export const emailOTPAuth = asyncHandler(
       if (String(decodedOTP.projectId) != String(projectFromDB._id)) {
         // Track the number of failed login attempts
         accountLockout.handleFailedLoginAttempt(req.ip!, userFromDB.email);
-
+        // Log an event
+        await securityLog.logEvent({
+          userId: userFromDB._id,
+          eventCode: EventCode.OTP_AUTHENTICATION,
+          eventSuccess: false,
+          message:
+            "Project-ID mismatch in OTP and request headers. Initiate the authentication process again.",
+        });
+        // Throw error
         throw new ApiError(
           responseType.NOT_FOUND.code,
           responseType.NOT_FOUND.type,
@@ -1250,6 +1438,15 @@ export const emailOTPAuth = asyncHandler(
       if (!userFromDB.token || !userFromDB.tokenExpiry) {
         // Track the number of failed login attempts
         accountLockout.handleFailedLoginAttempt(req.ip!, userFromDB.email);
+        // Log an event
+        await securityLog.logEvent({
+          userId: userFromDB._id,
+          eventCode: EventCode.OTP_AUTHENTICATION,
+          eventSuccess: false,
+          message:
+            "OTP-Token and/or OTP-expiry not found in the database. Initiate the authentication process again.",
+        });
+        // Throw error
         throw new ApiError(
           responseType.NOT_FOUND.code,
           responseType.NOT_FOUND.type,
@@ -1265,6 +1462,14 @@ export const emailOTPAuth = asyncHandler(
       if (!isOTPCorrect) {
         // Track the number of failed login attempts
         accountLockout.handleFailedLoginAttempt(req.ip!, userFromDB.email);
+        // Log an event
+        await securityLog.logEvent({
+          userId: userFromDB._id,
+          eventCode: EventCode.OTP_AUTHENTICATION,
+          eventSuccess: false,
+          message: "OTPs do not match.",
+        });
+        // Throw error
         throw new ApiError(
           responseType.INCORRECT_PASSWORD.code,
           responseType.INCORRECT_PASSWORD.type,
@@ -1274,6 +1479,14 @@ export const emailOTPAuth = asyncHandler(
       if (userFromDB.tokenExpiry < new Date()) {
         // Track the number of failed login attempts
         accountLockout.handleFailedLoginAttempt(req.ip!, userFromDB.email);
+        // Log an event
+        await securityLog.logEvent({
+          userId: userFromDB._id,
+          eventCode: EventCode.OTP_AUTHENTICATION,
+          eventSuccess: false,
+          message: "OTP-Verification Token expired.",
+        });
+        // Throw error
         throw new ApiError(
           responseType.TOKEN_EXPIRED.code,
           responseType.TOKEN_EXPIRED.type,
@@ -1315,6 +1528,15 @@ export const emailOTPAuth = asyncHandler(
         $and: [{ userId: userFromDB._id }, { details }],
       });
       if (sessionFromDB) {
+        // Log an event
+        await securityLog.logEvent({
+          userId: userFromDB._id,
+          eventCode: EventCode.OTP_AUTHENTICATION,
+          eventSuccess: false,
+          message:
+            "There exists a login session corresponding to this User-Agent.",
+        });
+        // Throw error
         throw new ApiError(
           responseType.ALREADY_EXISTS.code,
           responseType.ALREADY_EXISTS.type,
@@ -1323,7 +1545,7 @@ export const emailOTPAuth = asyncHandler(
       }
 
       // Create a new corresponding session
-      const createdSession: ISession = await Session.create({
+      const createdSession = await Session.create({
         projectId,
         userId: userFromDB._id,
         accessToken,
@@ -1337,6 +1559,14 @@ export const emailOTPAuth = asyncHandler(
       userFromDB.token = undefined;
       userFromDB.tokenExpiry = undefined;
       await userFromDB.save();
+
+      // Log an event
+      await securityLog.logEvent({
+        userId: userFromDB._id,
+        eventCode: EventCode.OTP_AUTHENTICATION,
+        eventSuccess: true,
+        sessionId: createdSession._id,
+      });
 
       // Send response with browser cookie (Access token) & created session
       res
@@ -1371,10 +1601,4 @@ export const emailOTPAuth = asyncHandler(
 /*
     AUTHENTICATION FEATURES
     - USER LOGIN USING OTPs (ON MOBILE)
-*/
-
-/*
-    SECURITY FEATURES
-
-    - SECURITY AUDITING (log the activities on the user dashboard & admin dashboards)
 */

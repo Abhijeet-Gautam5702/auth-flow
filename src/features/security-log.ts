@@ -21,7 +21,7 @@ type ILogInput = {
   endDate: Date;
   page: number;
   queryItemCount: number;
-  eventCode: EventCode;
+  eventCode: string;
 };
 
 class SecurityLog {
@@ -159,7 +159,6 @@ class SecurityLog {
 
     // Calculate the total number of logs for the given userId (& projectId)
     const totalDocs = await Log.countDocuments(query);
-
     if (Math.ceil(totalDocs / queryItemCount) < page) {
       throw new ApiError(
         responseType.UNSUCCESSFUL.code,
@@ -193,52 +192,49 @@ class SecurityLog {
     eventCode,
     startDate,
     endDate,
-    page,
-    queryItemCount,
+    page = 1,
+    queryItemCount = this.defaultItemCount,
   }: Omit<ILogInput, "userId">) => {
     // Calculate the number of document to skip (according to the page-no. and item-count)
-    const skipDocs = (page - 1) * (queryItemCount || this.defaultItemCount);
+    const skipDocs = (page - 1) * queryItemCount;
 
-    // Calculate the total number of documents corresponding to the given event-code (within the project)
-    const totalDocs = await Log.countDocuments({
-      $and: [
-        {
-          projectId,
-        },
-        {
-          event: {
-            code: eventCode,
-          },
-        },
-        {
-          createdAt: {
-            $gte: startDate,
-            $lte: endDate,
-          },
-        },
-      ],
-    });
-
-    const queryDocs = await Log.find({
+    // Create query
+    const query = {
       projectId,
       "event.code": eventCode, // Used for matching nested properties (Can be done using $and as well)
-      createdAt: {
-        $gte: startDate,
-        $lte: endDate,
-      },
-    })
+      // Add `createdAt` filter only if at lease one of the dates are non-null
+      ...(startDate || endDate
+        ? {
+            createdAt: {
+              ...(startDate ? { $gte: startDate } : {}), // Add startDate property only if it is non-null
+              ...(endDate ? { $lte: endDate } : {}), // Add endDate property only if it is non-null
+            },
+          }
+        : {}),
+    };
+
+    // Calculate the total number of documents corresponding to the given event-code (within the project)
+    const totalDocs = await Log.countDocuments(query);
+    if (Math.ceil(totalDocs / queryItemCount) < page) {
+      throw new ApiError(
+        responseType.UNSUCCESSFUL.code,
+        responseType.UNSUCCESSFUL.type,
+        `We do not have enough data for Page-${page}`
+      );
+    }
+
+    // Get all the log-documents based on the event-code
+    const queryDocs = await Log.find(query)
       .sort({ createdAt: -1 })
       .skip(skipDocs)
-      .limit(queryItemCount || this.defaultItemCount);
+      .limit(queryItemCount);
 
     return {
       queryDocs,
       pagination: {
         currentPage: page,
         totalDocs,
-        totalPages: Math.ceil(
-          totalDocs / (queryItemCount || this.defaultItemCount)
-        ),
+        totalPages: Math.ceil(totalDocs / queryItemCount),
       },
     };
   };
