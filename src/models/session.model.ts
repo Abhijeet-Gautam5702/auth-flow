@@ -46,6 +46,10 @@ const SessionSchema = new Schema<ISession, ISessionModel, ISessionMethods>(
         enum: Object.values(DeviceType),
         required: true,
       },
+      networkIP:{
+        type:String,
+        required:false,
+      }
     },
   },
   { timestamps: true, validateBeforeSave: true }

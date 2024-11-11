@@ -13,6 +13,7 @@ export interface UserAgent {
   userAgent: string;
   deviceType: DeviceType;
   os: string;
+  networkIP: string;
 }
 
 // Mongoose: SessionBase (base interface)
