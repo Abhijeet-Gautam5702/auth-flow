@@ -2,7 +2,7 @@
 
 import { DeviceType, UserAgent } from "../types/types";
 
-export const parseUserAgent = (userAgent: string): UserAgent => {
+export const parseUserAgent = (userAgent: string) => {
   // Store the complete user agent
   const completeUserAgent = userAgent;
 

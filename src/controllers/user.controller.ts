@@ -288,8 +288,8 @@ export const createLoginSession = asyncHandler(
     });
     const sessionId = createdSession._id;
 
-    // MONGODB AGGREGATION: Get the created session and populate it with user details
-    const session = await Session.aggregate([
+    // Create response-data
+    const responseData = await Session.aggregate([
       // Filter all the Session documents and match `_id` with sessionId
       {
         $match: {
@@ -319,6 +319,8 @@ export const createLoginSession = asyncHandler(
             updatedAt: 0,
             __v: 0,
             projectId: 0,
+            token: 0,
+            tokenExpiry: 0,
           },
           __v: 0,
         },
@@ -349,7 +351,7 @@ export const createLoginSession = asyncHandler(
           responseType.SESSION_CREATED.code,
           responseType.SESSION_CREATED.type,
           "Login session created successfully",
-          session
+          responseData
         )
       );
   }
@@ -451,7 +453,7 @@ export const getAllLoginSessions = asyncHandler(
 
     // Create the response-data
     const user = await User.findById(userId).select(
-      "-password -createdAt -updatedAt -__v -projectId"
+      "-password -createdAt -updatedAt -__v -projectId -token -tokenExpiry"
     );
     const responseData = {
       projectId: req.project?.id,
@@ -603,7 +605,7 @@ export const verifyEmail = asyncHandler(
       const emailResponse = await sendMail({
         organization: `${ORG_NAME} <${ORG_EMAIL}>`,
         userEmail: userFromDB.email,
-        subject: "Verify your AuthWave user account",
+        subject: "User Verification request for your AuthWave account",
         template: userVerificationEmail,
       });
 
@@ -1026,6 +1028,39 @@ export const refreshAccessToken = asyncHandler(
     sessionFromDB.accessTokenExpiry = accessTokenExpiry;
     await sessionFromDB.save();
 
+    // Create response-data
+    const responseData = await Session.aggregate([
+      {
+        $match: {
+          _id: sessionFromDB._id,
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $unwind: "$user",
+      },
+      {
+        $project: {
+          userId: 0,
+          user: {
+            password: 0,
+            createdAt: 0,
+            updatedAt: 0,
+            __v: 0,
+            projectId: 0,
+          },
+          __v: 0,
+        },
+      },
+    ]);
+
     // Set browser cookies and send response
     res
       .status(responseType.SUCCESSFUL.code)
@@ -1038,7 +1073,7 @@ export const refreshAccessToken = asyncHandler(
           responseType.SUCCESSFUL.code,
           responseType.SUCCESSFUL.type,
           "Access token has been refreshed successfully",
-          sessionFromDB
+          responseData
         )
       );
   }
@@ -1270,7 +1305,7 @@ export const magicURLAuth = asyncHandler(
           "User-Agent header missing in the request (mandatory for creating a login-session)"
         );
       }
-      const details = parseUserAgent(userAgent);
+      const details = { ...parseUserAgent(userAgent), networkIP: req.ip };
 
       // Check if another login-session from the same device already exists
       /*
@@ -1305,11 +1340,51 @@ export const magicURLAuth = asyncHandler(
         refreshTokenExpiry,
         details,
       });
+      const sessionId = createdSession._id;
 
       // Update the magic-URL verifications status in the user-document
       userFromDB.token = undefined;
       userFromDB.tokenExpiry = undefined;
       await userFromDB.save();
+
+      // Create response-data
+      const responseData = await Session.aggregate([
+        // Filter all the Session documents and match `_id` with sessionId
+        {
+          $match: {
+            _id: sessionId,
+          },
+        },
+        // Create a new `user` field and populate it with user-details by looking up the `userId` field
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        // Since $lookup returns an array, so unwind the `user` field into individual documents (in this case, it'll be one single document only)
+        {
+          $unwind: "$user",
+        },
+        // Remove certain fields from the final result
+        {
+          $project: {
+            userId: 0,
+            user: {
+              password: 0,
+              createdAt: 0,
+              updatedAt: 0,
+              __v: 0,
+              projectId: 0,
+              token: 0,
+              tokenExpiry: 0,
+            },
+            __v: 0,
+          },
+        },
+      ]);
 
       // Log an event
       await securityLog.logEvent({
@@ -1335,7 +1410,7 @@ export const magicURLAuth = asyncHandler(
             responseType.SUCCESSFUL.code,
             responseType.SUCCESSFUL.type,
             "Magic-URL Authentication completed.",
-            createdSession
+            responseData
           )
         );
     }
@@ -1437,7 +1512,7 @@ export const emailOTPAuth = asyncHandler(
       const emailResponse = await sendMail({
         organization: `${ORG_NAME} <${ORG_EMAIL}>`,
         userEmail: user.email,
-        subject: "Complete your Magic-URL authentication",
+        subject: "Complete your OTP Authentication",
         template: otpVerificationEmail,
       });
 
@@ -1616,11 +1691,51 @@ export const emailOTPAuth = asyncHandler(
         refreshTokenExpiry: undefined,
         details,
       });
+      const sessionId=createdSession._id;
 
       // Remove the token and expiry from the user-document
       userFromDB.token = undefined;
       userFromDB.tokenExpiry = undefined;
       await userFromDB.save();
+      
+      // Create response-data
+      const responseData = await Session.aggregate([
+        // Filter all the Session documents and match `_id` with sessionId
+        {
+          $match: {
+            _id: sessionId,
+          },
+        },
+        // Create a new `user` field and populate it with user-details by looking up the `userId` field
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        // Since $lookup returns an array, so unwind the `user` field into individual documents (in this case, it'll be one single document only)
+        {
+          $unwind: "$user",
+        },
+        // Remove certain fields from the final result
+        {
+          $project: {
+            userId: 0,
+            user: {
+              password: 0,
+              createdAt: 0,
+              updatedAt: 0,
+              __v: 0,
+              projectId: 0,
+              token: 0,
+              tokenExpiry: 0,
+            },
+            __v: 0,
+          },
+        },
+      ]);
 
       // Log an event
       await securityLog.logEvent({
@@ -1642,7 +1757,7 @@ export const emailOTPAuth = asyncHandler(
             responseType.SUCCESSFUL.code,
             responseType.SUCCESSFUL.type,
             "OTP-based Authentication completed.",
-            createdSession
+            responseData
           )
         );
     }
