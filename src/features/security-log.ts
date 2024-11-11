@@ -101,6 +101,9 @@ class SecurityLog {
 
   // Admin & User Method:: Get user logs (with date filter and pagination)
   /*
+    NOTE: TypeScript doesn't throw an error even if some of the properties are not present in the argument because it performs type-checking on the destructured properties only. It assumes that there might be some properties in the argument object which are not being destructured. Hence it doesn't throw any error.
+  */
+  /*
     `Omit<ILogInput, "eventCode">`
 
     We have to use ILogInput interface in multiple places but with very slight changes (one has `userId` while other doesn't; same with `eventCode` field). So, creating 2 separate interfaces would be an overkill. Therefore, TypeScript provides the `Omit< Type, excludedKey >` generic to exclude some properties from a type/interface.
@@ -133,50 +136,50 @@ class SecurityLog {
     projectId,
     startDate,
     endDate,
-    page,
-    queryItemCount,
+    page = 1,
+    queryItemCount = this.defaultItemCount,
   }: Omit<ILogInput, "eventCode">) => {
-    // Caclulat the number of documents to skip (based on the Page number and query-item-count)
-    const skipDocs = (page - 1) * (queryItemCount || this.defaultItemCount);
+    // Caclulate the number of documents to skip (based on the Page number and query-item-count)
+    const skipDocs = (page - 1) * queryItemCount;
 
-    // Calculate the total number of logs for the given userId (& projectId)
-    const totalDocs = await Log.countDocuments({
-      $and: [
-        { userId },
-        { projectId },
-        {
-          createdAt: {
-            $gte: startDate,
-            $lte: endDate,
-          },
-        },
-      ],
-    });
-
-    // Get all the log-documents based on userId (& projectId)
-    /*
-      Note: Instead of creating an aggregation pipeline, we can simply use the in-built methods to get the work done
-    */
-    const queryDocs = await Log.find({
+    // Create query
+    const query = {
       userId,
       projectId,
-      createdAt: {
-        $gte: startDate,
-        $lte: endDate,
-      },
-    })
+      // Add `createdAt` filter only if at lease one of the dates are non-null
+      ...(startDate || endDate
+        ? {
+            createdAt: {
+              ...(startDate ? { $gte: startDate } : {}), // Add startDate property only if it is non-null
+              ...(endDate ? { $lte: endDate } : {}), // Add endDate property only if it is non-null
+            },
+          }
+        : {}),
+    };
+
+    // Calculate the total number of logs for the given userId (& projectId)
+    const totalDocs = await Log.countDocuments(query);
+
+    if (Math.ceil(totalDocs / queryItemCount) < page) {
+      throw new ApiError(
+        responseType.UNSUCCESSFUL.code,
+        responseType.UNSUCCESSFUL.type,
+        `We do not have enough data for Page-${page}`
+      );
+    }
+
+    // Get all the log-documents based on userId (& projectId)
+    const queryDocs = await Log.find(query)
       .sort({ createdAt: -1 }) // Sort according to the index (newest first)
       .skip(skipDocs)
-      .limit(queryItemCount || this.defaultItemCount);
+      .limit(queryItemCount);
 
     return {
       queryDocs,
       pagination: {
         currentPage: page,
         totalDocs,
-        totalPages: Math.ceil(
-          totalDocs / (queryItemCount || this.defaultItemCount)
-        ),
+        totalPages: Math.ceil(totalDocs / queryItemCount),
       },
     };
   };
