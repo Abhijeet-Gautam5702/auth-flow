@@ -15,18 +15,62 @@ type IEventInput = {
 };
 
 type ILogInput = {
-  userId: string | mongoose.Types.ObjectId;
+  userId?: string | mongoose.Types.ObjectId;
   projectId: string | mongoose.Types.ObjectId;
   startDate: Date;
   endDate: Date;
   page: number;
   queryItemCount: number;
-  eventCode: string;
+  eventCode?: string;
 };
 
 class SecurityLog {
   private logStorageDays: number = 30;
   private defaultItemCount: number = 10;
+
+  // Helper function to fetch security-logs using different queries
+  private helper_getLogs = async <T extends ILogInput>(
+    input: T,
+    query: object
+  ) => {
+    try {
+      // Calculate the number of document to skip (according to the page-no. and item-count)
+      const skipDocs = (input.page - 1) * input.queryItemCount;
+
+      // Calculate the total number of documents corresponding to the given event-code (within the project)
+      const totalDocs = await Log.countDocuments(query);
+      if (Math.ceil(totalDocs / input.queryItemCount) < input.page) {
+        throw new ApiError(
+          responseType.UNSUCCESSFUL.code,
+          responseType.UNSUCCESSFUL.type,
+          `We do not have enough data for Page-${input.page}`
+        );
+      }
+
+      // Get all the log-documents based on the event-code
+      const queryDocs = await Log.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skipDocs)
+        .limit(input.queryItemCount);
+
+      return {
+        queryDocs,
+        pagination: {
+          currentPageNumber: input.page,
+          totalDocs,
+          totalPages: Math.ceil(totalDocs / input.queryItemCount),
+        },
+      };
+    } catch (error: any) {
+      logger(responseType.SERVER_ERROR.type, error.message);
+      throw new ApiError(
+        responseType.SERVER_ERROR.code,
+        responseType.SERVER_ERROR.type,
+        `Could not get User-Logs.`,
+        error
+      );
+    }
+  };
 
   // Create a log-event of a user and project
   public logEvent = async ({
@@ -72,7 +116,7 @@ class SecurityLog {
     }
   };
 
-  // Admin Method:: Clear all expired logs (older than `threshold` days)
+  // Clear all expired logs (older than `threshold` days)
   public clearExpiredLogs = async () => {
     try {
       const thresholdDate = new Date(
@@ -99,7 +143,7 @@ class SecurityLog {
     }
   };
 
-  // Admin & User Method:: Get user logs (with date filter and pagination)
+  // Get user logs (with date filter and pagination)
   /*
     NOTE: TypeScript doesn't throw an error even if some of the properties are not present in the argument because it performs type-checking on the destructured properties only. It assumes that there might be some properties in the argument object which are not being destructured. Hence it doesn't throw any error.
   */
@@ -139,9 +183,6 @@ class SecurityLog {
     page = 1,
     queryItemCount = this.defaultItemCount,
   }: Omit<ILogInput, "eventCode">) => {
-    // Caclulate the number of documents to skip (based on the Page number and query-item-count)
-    const skipDocs = (page - 1) * queryItemCount;
-
     // Create query
     const query = {
       userId,
@@ -157,37 +198,24 @@ class SecurityLog {
         : {}),
     };
 
-    // Calculate the total number of logs for the given userId (& projectId)
-    const totalDocs = await Log.countDocuments(query);
-    if (Math.ceil(totalDocs / queryItemCount) < page) {
-      throw new ApiError(
-        responseType.UNSUCCESSFUL.code,
-        responseType.UNSUCCESSFUL.type,
-        `We do not have enough data for Page-${page}`
-      );
-    }
-
-    // Get all the log-documents based on userId (& projectId)
-    const queryDocs = await Log.find(query)
-      .sort({ createdAt: -1 }) // Sort according to the index (newest first)
-      .skip(skipDocs)
-      .limit(queryItemCount);
-
-    return {
-      queryDocs,
-      pagination: {
-        currentPage: page,
-        totalDocs,
-        totalPages: Math.ceil(totalDocs / queryItemCount),
+    return await this.helper_getLogs<Omit<ILogInput, "eventCode">>(
+      {
+        userId,
+        projectId,
+        startDate,
+        endDate,
+        page,
+        queryItemCount,
       },
-    };
+      query
+    );
   };
 
-  // Admin & User Method:: Get user logs by event (with date filter and pagination)
+  // Get logs by specific event (with date filter and pagination)
   /*
     NOTE: TypeScript doesn't throw an error even if some of the properties are not present in the argument because it performs type-checking on the destructured properties only. It assumes that there might be some properties in the argument object which are not being destructured. Hence it doesn't throw any error.
   */
-  public getLogsByEvent = async ({
+  public getAllLogsByEvent = async ({
     projectId,
     eventCode,
     startDate,
@@ -195,9 +223,6 @@ class SecurityLog {
     page = 1,
     queryItemCount = this.defaultItemCount,
   }: Omit<ILogInput, "userId">) => {
-    // Calculate the number of document to skip (according to the page-no. and item-count)
-    const skipDocs = (page - 1) * queryItemCount;
-
     // Create query
     const query = {
       projectId,
@@ -213,30 +238,56 @@ class SecurityLog {
         : {}),
     };
 
-    // Calculate the total number of documents corresponding to the given event-code (within the project)
-    const totalDocs = await Log.countDocuments(query);
-    if (Math.ceil(totalDocs / queryItemCount) < page) {
-      throw new ApiError(
-        responseType.UNSUCCESSFUL.code,
-        responseType.UNSUCCESSFUL.type,
-        `We do not have enough data for Page-${page}`
-      );
-    }
-
-    // Get all the log-documents based on the event-code
-    const queryDocs = await Log.find(query)
-      .sort({ createdAt: -1 })
-      .skip(skipDocs)
-      .limit(queryItemCount);
-
-    return {
-      queryDocs,
-      pagination: {
-        currentPage: page,
-        totalDocs,
-        totalPages: Math.ceil(totalDocs / queryItemCount),
+    return await this.helper_getLogs<Omit<ILogInput, "userId">>(
+      {
+        projectId,
+        eventCode,
+        startDate,
+        endDate,
+        page,
+        queryItemCount,
       },
+      query
+    );
+  };
+
+  // Get user-logs by specific event (with date filter and pagination)
+  public getUserLogsByEvent = async ({
+    projectId,
+    userId,
+    eventCode,
+    startDate,
+    endDate,
+    page = 1,
+    queryItemCount = this.defaultItemCount,
+  }: ILogInput) => {
+    // Create query
+    const query = {
+      userId,
+      projectId,
+      "event.code": eventCode,
+      ...(startDate || endDate
+        ? {
+            createdAt: {
+              ...(startDate ? { $gte: startDate } : {}),
+              ...(endDate ? { $lte: endDate } : {}),
+            },
+          }
+        : {}),
     };
+
+    return await this.helper_getLogs<ILogInput>(
+      {
+        projectId,
+        userId,
+        eventCode,
+        startDate,
+        endDate,
+        page,
+        queryItemCount,
+      },
+      query
+    );
   };
 }
 

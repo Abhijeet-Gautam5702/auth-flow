@@ -9,7 +9,7 @@ import { ApiResponse } from "../utils/custom-api-response";
 import { ApiError } from "../utils/custom-api-error";
 import { EventCode } from "../types/types";
 
-// GET ALL LOGS OF A PARTICULAR USER (USING ITS USER-ID)
+// ADMIN-SPECIFIC:: GET ALL LOGS OF A PARTICULAR USER (USING ITS USER-ID)
 export const getLogsByUserId = asyncHandler(
   async (req: IRequest, res: Response) => {
     // Auth-middleware: Authenticate the user (or admin)
@@ -62,7 +62,7 @@ export const getLogsByUserId = asyncHandler(
   }
 );
 
-// GET ALL SPECIFIC EVENT-LOGS OF A PROJECT (USING EVENT-CODE)
+// ADMIN-SPECIFIC:: GET ALL SPECIFIC EVENT-LOGS OF A PROJECT (USING EVENT-CODE)
 export const getLogsByEventCode = asyncHandler(
   async (req: IRequest, res: Response) => {
     // Auth-middleware: Authenticate the user (or admin)
@@ -101,7 +101,7 @@ export const getLogsByEventCode = asyncHandler(
     }
 
     // Get the documents from the database
-    const logsFromDB = await securityLog.getLogsByEvent({
+    const logsFromDB = await securityLog.getAllLogsByEvent({
       projectId,
       page,
       queryItemCount: itemLimit,
@@ -123,3 +123,6 @@ export const getLogsByEventCode = asyncHandler(
       );
   }
 );
+
+// USER-SPECIFIC:: GET ALL SPECIFIC EVENT-LOGS (USING EVENT-CODE)
+export const getUserLogsByEventCode = asyncHandler(async(req:IRequest,res:Response)=>{})
