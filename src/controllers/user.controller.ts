@@ -251,7 +251,7 @@ export const createLoginSession = asyncHandler(
         "User-Agent header missing in the request (mandatory for creating a login-session)"
       );
     }
-    const details = parseUserAgent(userAgent);
+    const details = { ...parseUserAgent(userAgent), networkIP: req.ip };
 
     // Check if another login-session from the same device already exists
     /*
@@ -288,6 +288,43 @@ export const createLoginSession = asyncHandler(
     });
     const sessionId = createdSession._id;
 
+    // MONGODB AGGREGATION: Get the created session and populate it with user details
+    const session = await Session.aggregate([
+      // Filter all the Session documents and match `_id` with sessionId
+      {
+        $match: {
+          _id: sessionId,
+        },
+      },
+      // Create a new `user` field and populate it with user-details by looking up the `userId` field
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      // Since $lookup returns an array, so unwind the `user` field into individual documents (in this case, it'll be one single document only)
+      {
+        $unwind: "$user",
+      },
+      // Remove certain fields from the final result
+      {
+        $project: {
+          userId: 0,
+          user: {
+            password: 0,
+            createdAt: 0,
+            updatedAt: 0,
+            __v: 0,
+            projectId: 0,
+          },
+          __v: 0,
+        },
+      },
+    ]);
+
     // Log an event
     await securityLog.logEvent({
       userId: userFromDB._id,
@@ -312,7 +349,7 @@ export const createLoginSession = asyncHandler(
           responseType.SESSION_CREATED.code,
           responseType.SESSION_CREATED.type,
           "Login session created successfully",
-          createdSession
+          session
         )
       );
   }
@@ -391,11 +428,36 @@ export const getAllLoginSessions = asyncHandler(
     // User-auth-middleware: Authenticate the user
     const userId = req.user?.id;
 
-    // Get all session documents using the userId
-    const userSessionsFromDB =
-      (await Session.find({ userId }).select(
-        "-accessToken -accessTokenExpiry -refreshToken -refreshTokenExpiry"
-      )) || [];
+    // MONGODB AGGREGATION: Get all session documents
+    const sessions = await Session.aggregate([
+      {
+        $match: {
+          userId: userId,
+        },
+      },
+      {
+        $project: {
+          projectId: 0,
+          userId: 0,
+          updatedAt: 0,
+          refreshToken: 0,
+          refreshTokenExpiry: 0,
+          accessToken: 0,
+          accessTokenExpiry: 0,
+          __v: 0,
+        },
+      },
+    ]);
+
+    // Create the response-data
+    const user = await User.findById(userId).select(
+      "-password -createdAt -updatedAt -__v -projectId"
+    );
+    const responseData = {
+      projectId: req.project?.id,
+      user,
+      sessions,
+    };
 
     // Send response with list of sessions' data
     res
@@ -405,7 +467,7 @@ export const getAllLoginSessions = asyncHandler(
           responseType.SUCCESSFUL.code,
           responseType.SUCCESSFUL.type,
           "Session List fetched successfully",
-          userSessionsFromDB
+          responseData
         )
       );
   }
