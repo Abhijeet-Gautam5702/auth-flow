@@ -27,6 +27,7 @@ import mongoose from "mongoose";
 import { accountLockout } from "../features/account-lockout";
 import { securityLog } from "../features/security-log";
 import { Log } from "../models/security-log.model";
+import { defaultEmail } from "../features/email";
 
 // CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
@@ -608,7 +609,7 @@ export const verifyEmail = asyncHandler(
       // Generate an email to be sent to the user-inbox (either the custom one or default)
       const userVerificationEmail =
         customEmailTemplate ||
-        emailGenerator.userVerification(
+        defaultEmail.userVerification(
           `${frontendDomain}/user/verify?token=${verificationToken}`
         ); // TODO: The frontend website link will be taken from the client (not user) OR the Authwave frontend website link can be used
 
@@ -785,7 +786,7 @@ export const resetPassword = asyncHandler(
       // Generate the email to be sent to the user inbox (either default or custom)
       const resetPasswordEmail =
         projectFromDB.config.emailTemplates?.resetPassword ||
-        emailGenerator.resetPassword(
+        defaultEmail.resetPassword(
           `${frontendDomain}/user/reset-password?token=${resetPasswordToken}`
         ); // TODO: The frontend website link will be taken from the client (not user) OR the Authwave frontend website link can be used
 
@@ -1185,7 +1186,7 @@ export const magicURLAuth = asyncHandler(
       // Generate the email to be sent to the user inbox (either default or custom)
       const magicURLVerificationEmail =
         projectFromDB.config.emailTemplates?.magicURLonEmail ||
-        emailGenerator.magicURLonEmail(
+        defaultEmail.magicURLonEmail(
           `${frontendDomain}/user/auth/magic-url?magicURLToken=${magicURLToken}`
         ); // TODO: The frontend website link will be taken from the client (not user) OR the Authwave frontend website link can be used
 
@@ -1517,7 +1518,7 @@ export const emailOTPAuth = asyncHandler(
       // Generate the email to be sent to the user inbox (either default or custom)
       const otpVerificationEmail =
         projectFromDB.config.emailTemplates?.OTPonEmail ||
-        emailGenerator.OTPonEmail(newOtp.unhashedOTP);
+        defaultEmail.OTPonEmail(newOtp.unhashedOTP);
 
       // Send email to the user
       const emailResponse = await sendMail({
