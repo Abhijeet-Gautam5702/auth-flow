@@ -2,9 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { asyncHandler } from "../utils/async-handler";
 import { ApiError } from "../utils/custom-api-error";
 import {
-  backendDomain,
   cookieOptions,
-  defaultEmailTemplates,
   env,
   frontendDomain,
   ORG_EMAIL,
@@ -17,14 +15,7 @@ import { ApiResponse } from "../utils/custom-api-response";
 import { filterObject } from "../utils/filter-object";
 import { generateToken } from "../utils/token-generator";
 import { Session } from "../models/session.model";
-import {
-  EventCode,
-  IAdmin,
-  IProject,
-  IRequest,
-  ISession,
-  IUser,
-} from "../types/types";
+import { EventCode, IProject, IRequest, IUser } from "../types/types";
 import { parseUserAgent } from "../utils/user-agent-parser";
 import { Project } from "../models/project.model";
 import { sendMail } from "../utils/mailer";
@@ -35,6 +26,7 @@ import { otp } from "../features/otp";
 import mongoose from "mongoose";
 import { accountLockout } from "../features/account-lockout";
 import { securityLog } from "../features/security-log";
+import { Log } from "../models/security-log.model";
 
 // CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
@@ -47,7 +39,7 @@ export const createAccount = asyncHandler(
       throw new ApiError(
         responseType.INVALID_FORMAT.code,
         responseType.INVALID_FORMAT.type,
-        "One or more field(s) are not provided. Please enter all fields."
+        "One or more field(s) are not provided. Please enter all fields (i.e., Username, Email & Password)."
       );
     }
     // Validate schema of input fields
@@ -393,7 +385,13 @@ export const deleteCurrentLoginSession = asyncHandler(
 export const deleteAccount = asyncHandler(
   async (req: IRequest, res: Response) => {
     // User-auth-middleware: Authenticate the user
-    const userId = req.user?.id;
+    /*
+    NOTE: Since this controller is used by Admin as well as the user, so userId will either come from the request-params (when request is sent by Admin) or from req.user.id (when request is sent from user)
+    */
+    let userId = req.user?.id;
+    if (!userId) {
+      userId = req.params.userId as string;
+    }
 
     // Delete all sessions whose userId matches with `userId`
     await Session.deleteMany({ userId });
@@ -401,12 +399,8 @@ export const deleteAccount = asyncHandler(
     // Delete the user-document from the database
     await User.findByIdAndDelete(userId);
 
-    // Log an event
-    await securityLog.logEvent({
-      userId: userId!,
-      eventCode: EventCode.ACCOUNT_DELETION,
-      eventSuccess: true,
-    });
+    // Delete all the logs corresponding to the userId
+    await Log.deleteMany({ userId });
 
     // Clear all browser cookies and send response
     res
@@ -428,13 +422,19 @@ export const deleteAccount = asyncHandler(
 export const getAllLoginSessions = asyncHandler(
   async (req: IRequest, res: Response) => {
     // User-auth-middleware: Authenticate the user
-    const userId = req.user?.id;
+    /*
+      NOTE: Since this controller is used by Admin as well as the user, so userId will either come from the request-params (when request is sent by Admin) or from req.user.id (when request is sent from user)
+    */
+    let userId = req.user?.id;
+    if (!userId) {
+      userId = req.params.userId as string;
+    }
 
     // MONGODB AGGREGATION: Get all session documents
     const sessions = await Session.aggregate([
       {
         $match: {
-          userId: userId,
+          userId: new mongoose.Types.ObjectId(userId),
         },
       },
       {
@@ -458,6 +458,7 @@ export const getAllLoginSessions = asyncHandler(
     const responseData = {
       projectId: req.project?.id,
       user,
+      sessionCount:sessions.length,
       sessions,
     };
 
@@ -479,12 +480,16 @@ export const getAllLoginSessions = asyncHandler(
 export const deleteLoginSessionByID = asyncHandler(
   async (req: IRequest, res: Response) => {
     // User-auth-middleware: Authenticate the user
-    const userId = req.user?.id;
+    /*
+      NOTE: Since this controller is used by Admin as well as the user, so userId will either come from the request-body (when request is sent by Admin) or from req.user.id (when request is sent from user)
+    */
+    let userId = req.user?.id;
+    if (!userId) {
+      userId = req.body.userId as string;
+    }
 
     // Get the sessionId from the request params
-    const sessionId = req.params.sessionId;
-
-    console.log("sessionId = ", sessionId); // testing
+    const sessionId = req.params.sessionId as string;
 
     // Delete the session using its sessionId
     await Session.findByIdAndDelete(sessionId);
@@ -510,9 +515,15 @@ export const deleteLoginSessionByID = asyncHandler(
 export const deleteAllLoginSessions = asyncHandler(
   async (req: IRequest, res: Response) => {
     // User-Auth-Middleware: Authenticate the user
-    const userId = req.user?.id;
+    /*
+      NOTE: Since this controller is used by Admin as well as the user, so userId will either come from the request-params (when request is sent by Admin) or from req.user.id (when request is sent from user)
+    */
+    let userId = req.user?.id;
+    if (!userId) {
+      userId = req.params.userId as string;
+    }
 
-    // Delete the session-document using the access token
+    // Delete all session-documents
     await Session.deleteMany({ userId });
 
     // Clear the browser cookies and send response
@@ -555,7 +566,7 @@ export const verifyEmail = asyncHandler(
           new ApiResponse(
             responseType.EMAIL_VERIFIED.code,
             responseType.EMAIL_VERIFIED.type,
-            "Your email has already been verified",
+            "This email has already been verified",
             {}
           )
         );
@@ -1691,13 +1702,13 @@ export const emailOTPAuth = asyncHandler(
         refreshTokenExpiry: undefined,
         details,
       });
-      const sessionId=createdSession._id;
+      const sessionId = createdSession._id;
 
       // Remove the token and expiry from the user-document
       userFromDB.token = undefined;
       userFromDB.tokenExpiry = undefined;
       await userFromDB.save();
-      
+
       // Create response-data
       const responseData = await Session.aggregate([
         // Filter all the Session documents and match `_id` with sessionId

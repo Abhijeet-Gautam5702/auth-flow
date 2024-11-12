@@ -6,9 +6,14 @@ import { validateSignupInput } from "../schema/validation";
 import { ApiResponse } from "../utils/custom-api-response";
 import { filterObject } from "../utils/filter-object";
 import { generateToken } from "../utils/token-generator";
-import { IAdmin, IRequest } from "../types/types";
+import { IRequest } from "../types/types";
 import { Admin } from "../models/admin.model";
 import jwt from "jsonwebtoken";
+import { User } from "../models/user.model";
+import { Session } from "../models/session.model";
+import mongoose from "mongoose";
+
+/* -------------------------- ADMIN AUTHENTICATION CONTROLLERS ----------------------------- */
 
 // CREATE ADMIN ACCOUNT
 export const createAccount = asyncHandler(
@@ -307,3 +312,129 @@ export const refreshAccessToken = asyncHandler(
       );
   }
 );
+
+/* ----------------------- ADMIN CONSOLE RELATED CONTROLLERS -------------------------- */
+
+// GET DETAILS OF A USER IN A PROJECT
+export const getUserFromConsole = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Admin-Auth middleware: Authenticate the admin
+    const adminId = req.admin?.id;
+
+    // Project-Validation middleware: Validat the project
+    const projectId = req.project?.id;
+
+    // Get the userId from the request params
+    const userId = req.params.userId as string;
+    if (!userId) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "User-ID not provided in the Request-Parameters."
+      );
+    }
+
+    // Find the user from the database
+    const userFromDB = await User.findById(userId).select("-password");
+    if (!userFromDB) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "User with the provided User-ID not found in the database."
+      );
+    }
+
+    // Find all active sessions of the user
+    const sessionsFromDB = await Session.aggregate([
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(userId),
+        },
+      },
+      {
+        $project: {
+          projectId: 0,
+          accessToken: 0,
+          accessTokenExpiry: 0,
+          refreshToken: 0,
+          refreshTokenExpiry: 0,
+          __v: 0,
+          updatedAt: 0,
+        },
+      },
+    ]);
+
+    // Create response-data
+    const responseData = {
+      user: userFromDB,
+      sessionCount: sessionsFromDB.length,
+      sessions: sessionsFromDB,
+    };
+
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          responseType.SUCCESSFUL.code,
+          responseType.SUCCESSFUL.type,
+          "User-details fetched successfully",
+          responseData
+        )
+      );
+  }
+);
+
+// VERIFY A USER MANUALLY
+export const verifyUserFromConsole = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Admin-auth middleware: Authenticate the admin
+    const adminId = req.admin?.id;
+
+    // Project-Validation middleware: Validate the project
+    const projectId = req.project?.id;
+
+    // Get userId & username from the request body
+    const userId = req.body.userId as string;
+    const email = req.body.email as string;
+    if (!userId && !email) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "Either User-ID or User-Email must be provided."
+      );
+    }
+
+    // Find the user from the database
+    const userFromDB = await User.findOne({
+      ...(userId ? { _id: userId } : {}), // Include userId if its not-null
+      ...(email ? { email } : {}), // Include email if its not-null
+    }).select("-password -token -tokenExpiry -updatedAt -__v");
+    if (!userFromDB) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "User with the provided details not found in the database."
+      );
+    }
+
+    // Update the verification status
+    userFromDB.isVerified = true;
+    await userFromDB.save();
+
+    // Send response
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          responseType.SUCCESSFUL.code,
+          responseType.SUCCESSFUL.type,
+          "User Verification-Status updated successfully.",
+          {}
+        )
+      );
+  }
+);
+
+// BLOCK A USER
+
+// UNBLOCK A USER
