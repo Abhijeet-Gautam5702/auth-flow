@@ -513,7 +513,7 @@ export const resetEmailTemplateToDefault = asyncHandler(
   }
 );
 
-// SECURED ROUTE: RESET A PARTICULAR SECURITY-SETTING TO DEFAULT
+// SECURED ROUTE: RESET SECURITY-SETTINGS TO DEFAULT
 export const resetSecuritySettingToDefault = asyncHandler(
   async (req: IRequest, res: Response) => {
     // Admin-authentication middleware: Authenticate the admin

@@ -30,26 +30,24 @@ router.route("/access-token/refresh").post(refreshAccessToken);
 // CONSOLE RELATED ENDPOINTS
 router
   .route("/get-user/:userId")
-  .get(authenticateAdmin, validateProject, getUserFromConsole);// TESTED
+  .get(authenticateAdmin, validateProject, getUserFromConsole);
 router
   .route("/verify-user")
-  .put(authenticateAdmin, validateProject, verifyUserFromConsole);//TESTED
+  .put(authenticateAdmin, validateProject, verifyUserFromConsole);
 router
   .route("/create-user")
-  .post(authenticateAdmin, validateProject, createUserAccount);// TESTED
+  .post(authenticateAdmin, validateProject, createUserAccount);
 router
   .route("/delete-user/:userId")
-  .delete(authenticateAdmin, validateProject, deleteUserAccount);// TESTED
+  .delete(authenticateAdmin, validateProject, deleteUserAccount);
 router
   .route("/get-user-sessions/:userId")
-  .get(authenticateAdmin, validateProject, getAllUserLoginSessions);// tested
+  .get(authenticateAdmin, validateProject, getAllUserLoginSessions);
 router
   .route("/delete-user-session/:sessionId")
   .delete(authenticateAdmin, validateProject, deleteUserLoginSession);
 router
   .route("/clear-user-sessions/:userId")
   .delete(authenticateAdmin, validateProject, deleteAllUserLoginSessions);
-
-// ADMIN DASHBOARD METRICS ENDPOINTS
 
 export const adminRouter = router;
