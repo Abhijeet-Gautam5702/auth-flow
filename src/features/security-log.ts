@@ -43,7 +43,7 @@ class SecurityLog {
         throw new ApiError(
           responseType.UNSUCCESSFUL.code,
           responseType.UNSUCCESSFUL.type,
-          `No docs found for the requested Event-Code: ${input.eventCode}`
+          `No docs found for the requested query`
         );
       }
       if (
@@ -93,7 +93,7 @@ class SecurityLog {
         },
         {
           $project: {
-            userId: 0,
+            // userId: 0,
             projectId: 0,
             sessionId: 0,
             session: {
