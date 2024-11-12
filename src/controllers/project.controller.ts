@@ -515,5 +515,30 @@ export const resetEmailTemplateToDefault = asyncHandler(
 
 // SECURED ROUTE: RESET A PARTICULAR SECURITY-SETTING TO DEFAULT
 export const resetSecuritySettingToDefault = asyncHandler(
-  async (req: IRequest, res: Response) => {}
+  async (req: IRequest, res: Response) => {
+    // Admin-authentication middleware: Authenticate the admin
+    const adminId = req.admin?.id;
+
+    // Project-Validation middleware: Validate the project
+    const projectId = req.project?.id;
+
+    // Find the project in the database
+    const projectFromDB = await Project.findById(projectId);
+    projectFromDB!.config.security = {
+      userLimit: 1000,
+      userSessionLimit: 5,
+    };
+    await projectFromDB?.save();
+
+    res
+      .status(responseType.SUCCESSFUL.code)
+      .json(
+        new ApiResponse(
+          responseType.SUCCESSFUL.code,
+          responseType.SUCCESSFUL.type,
+          "Security Settings reset successful",
+          {}
+        )
+      );
+  }
 );
