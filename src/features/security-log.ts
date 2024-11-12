@@ -31,7 +31,7 @@ class SecurityLog {
   // Helper function to fetch security-logs using query as input
   private helper_getLogs = async <T extends ILogInput>(
     input: T,
-    query: object
+    query: any
   ) => {
     try {
       // Calculate the number of document to skip (according to the page-no. and item-count)
@@ -39,14 +39,17 @@ class SecurityLog {
 
       // Calculate the total number of documents corresponding to the given event-code (within the project)
       const totalDocs = await Log.countDocuments(query);
-      if(!totalDocs){
+      if (!totalDocs) {
         throw new ApiError(
           responseType.UNSUCCESSFUL.code,
           responseType.UNSUCCESSFUL.type,
           `No docs found for the requested Event-Code: ${input.eventCode}`
-        )
+        );
       }
-      if (totalDocs && Math.ceil(totalDocs / input.queryItemCount) < input.page) {
+      if (
+        totalDocs &&
+        Math.ceil(totalDocs / input.queryItemCount) < input.page
+      ) {
         throw new ApiError(
           responseType.UNSUCCESSFUL.code,
           responseType.UNSUCCESSFUL.type,
@@ -54,14 +57,63 @@ class SecurityLog {
         );
       }
 
-      // Get all the log-documents based on the event-code
-      const queryDocs = await Log.find(query)
-        .sort({ createdAt: -1 })
-        .skip(skipDocs)
-        .limit(input.queryItemCount);
+      // MONGODB AGGREGATION: Remove the userId, projectId & populate the session-details
+      const aggregatedResponse = await Log.aggregate([
+        {
+          $match: query, // Note: Ensure that the query has everything in Mongoose-format (IDs in ObjectId and dates in JS-Date format)
+        },
+        {
+          $sort: {
+            createdAt: -1,
+          },
+        },
+        {
+          $skip: skipDocs,
+        },
+        {
+          $limit: input.queryItemCount,
+        },
+        {
+          $lookup: {
+            from: "sessions",
+            localField: "sessionId",
+            foreignField: "_id",
+            as: "session",
+          },
+        },
+        {
+          $unwind: {
+            path: "$session",
+            /*
+              NOTE:
+              preserveNullAndEmptyArrays:true => While unwinding, even if the document does not have `session` field, keep it.
+            */
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $project: {
+            userId: 0,
+            projectId: 0,
+            sessionId: 0,
+            session: {
+              projectId: 0,
+              updatedAt: 0,
+              __v: 0,
+              accessToken: 0,
+              accessTokenExpiry: 0,
+              refreshToken: 0,
+              refreshTokenExpiry: 0,
+              userId: 0,
+            },
+            __v: 0,
+            updatedAt: 0,
+          },
+        },
+      ]);
 
       return {
-        queryDocs,
+        queryDocs:aggregatedResponse,
         pagination: {
           currentPageNumber: input.page,
           totalDocs,
@@ -83,7 +135,7 @@ class SecurityLog {
     sessionId,
   }: IEventInput) => {
     try {
-      // Clear all expired logs 
+      // Clear all expired logs
       await this.clearExpiredLogs();
 
       const userFromDB = await User.findById(userId).select("-password");
@@ -187,14 +239,14 @@ class SecurityLog {
   }: Omit<ILogInput, "eventCode">) => {
     // Create query
     const query = {
-      userId,
-      projectId,
+      userId: new mongoose.Types.ObjectId(String(userId)),
+      projectId: new mongoose.Types.ObjectId(String(projectId)),
       // Add `createdAt` filter only if at lease one of the dates are non-null
       ...(startDate || endDate
         ? {
             createdAt: {
-              ...(startDate ? { $gte: startDate } : {}), // Add startDate property only if it is non-null
-              ...(endDate ? { $lte: endDate } : {}), // Add endDate property only if it is non-null
+              ...(startDate ? { $gte: new Date(startDate) } : {}), // Add startDate property only if it is non-null
+              ...(endDate ? { $lte: new Date(endDate) } : {}), // Add endDate property only if it is non-null
             },
           }
         : {}),
@@ -227,14 +279,14 @@ class SecurityLog {
   }: Omit<ILogInput, "userId">) => {
     // Create query
     const query = {
-      projectId,
+      projectId: new mongoose.Types.ObjectId(String(projectId)),
       "event.code": eventCode, // Used for matching nested properties (Can be done using $and as well)
       // Add `createdAt` filter only if at lease one of the dates are non-null
       ...(startDate || endDate
         ? {
             createdAt: {
-              ...(startDate ? { $gte: startDate } : {}), // Add startDate property only if it is non-null
-              ...(endDate ? { $lte: endDate } : {}), // Add endDate property only if it is non-null
+              ...(startDate ? { $gte: new Date(startDate) } : {}), // Add startDate property only if it is non-null
+              ...(endDate ? { $lte: new Date(endDate) } : {}), // Add endDate property only if it is non-null
             },
           }
         : {}),
@@ -265,14 +317,14 @@ class SecurityLog {
   }: ILogInput) => {
     // Create query
     const query = {
-      userId,
-      projectId,
+      userId: new mongoose.Types.ObjectId(String(userId)),
+      projectId: new mongoose.Types.ObjectId(String(projectId)),
       "event.code": eventCode,
       ...(startDate || endDate
         ? {
             createdAt: {
-              ...(startDate ? { $gte: startDate } : {}),
-              ...(endDate ? { $lte: endDate } : {}),
+              ...(startDate ? { $gte: new Date(startDate) } : {}),
+              ...(endDate ? { $lte: new Date(endDate) } : {}),
             },
           }
         : {}),

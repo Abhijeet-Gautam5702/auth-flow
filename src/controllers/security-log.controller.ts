@@ -7,7 +7,7 @@ import mongoose from "mongoose";
 import { responseType } from "../constants";
 import { ApiResponse } from "../utils/custom-api-response";
 import { ApiError } from "../utils/custom-api-error";
-import { EventCode } from "../types/types";
+import { User } from "../models/user.model";
 
 // COMMON FOR ADMIN & USER:: GET ALL LOGS OF A PARTICULAR USER (USING ITS USER-ID)
 export const getLogsByUserId = asyncHandler(
@@ -58,6 +58,20 @@ export const getLogsByUserId = asyncHandler(
       endDate,
     });
 
+    // Create response-data
+    const user = await User.findById(userId).select("-password -token -tokenExpiry -__v -updatedAt");
+    if (!user) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "User with the given User-ID not found in the database."
+      );
+    }
+    const responseData = {
+      user,
+      ...logsFromDB
+    };
+
     // Send response with data
     res
       .status(responseType.SUCCESSFUL.code)
@@ -66,7 +80,7 @@ export const getLogsByUserId = asyncHandler(
           responseType.SUCCESSFUL.code,
           responseType.SUCCESSFUL.type,
           "Logs between the given dates fetched successfully",
-          logsFromDB
+          responseData
         )
       );
   }
