@@ -12,6 +12,13 @@ import {
   validateSecurityObject,
 } from "../utils/project-config-validator";
 import mongoose from "mongoose";
+import { User } from "../models/user.model";
+import { Session } from "../models/session.model";
+import { Log } from "../models/security-log.model";
+import {
+  EmailTemplateConfig,
+  EmailTemplateName,
+} from "../types/model-types/project.types";
 
 // SECURED ROUTE: CREATE NEW PROJECT
 export const createProject = asyncHandler(
@@ -352,6 +359,15 @@ export const deleteProject = asyncHandler(
     // Find the project and delete it
     await Project.findByIdAndDelete(projectId);
 
+    // Delete all the users corresponding to the project
+    await User.deleteMany({ projectId });
+
+    // Delete all the sessions corresponding to the project
+    await Session.deleteMany({ projectId });
+
+    // Delete all the logs corresponding to the project
+    await Log.deleteMany({ projectId });
+
     // Send response
     res
       .status(responseType.DELETED.code)
@@ -370,10 +386,38 @@ export const deleteProject = asyncHandler(
 export const deleteAllProjects = asyncHandler(
   async (req: IRequest, res: Response) => {
     // Admin-auth middleware: Authenticate the admin
-    const adminId = req.admin?.id;
+    const adminId = req.admin?.id as string;
 
-    // Delete all projects created by the admin
-    await Project.deleteMany({ owner: adminId });
+    // Get all the projects created by the admin
+    const allProjectIDs = await Project.aggregate([
+      {
+        $match: {
+          owner: new mongoose.Types.ObjectId(adminId),
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+        },
+      },
+    ]);
+
+    // Delete each project & the documents related to it
+    allProjectIDs.forEach(async (item) => {
+      const projectId = item._id;
+
+      // Find the project and delete it
+      await Project.findByIdAndDelete(projectId);
+
+      // Delete all the users corresponding to the project
+      await User.deleteMany({ projectId });
+
+      // Delete all the sessions corresponding to the project
+      await Session.deleteMany({ projectId });
+
+      // Delete all the logs corresponding to the project
+      await Log.deleteMany({ projectId });
+    });
 
     // Send response
     res
@@ -396,10 +440,10 @@ export const getAllProjects = asyncHandler(
     const adminId = req.admin?.id;
 
     // Find all the projects created by the admin
-    const projectsFromDB: IProject[] | null = await Project.find({
+    const projectsFromDB = await Project.find({
       owner: adminId,
     });
-    if (!projectsFromDB) {
+    if (!projectsFromDB.length) {
       throw new ApiError(
         responseType.NOT_FOUND.code,
         responseType.NOT_FOUND.type,
@@ -421,6 +465,55 @@ export const getAllProjects = asyncHandler(
   }
 );
 
-// SECURED ROUTE: RESET A PARTICULAR EMAIL-TEMPLATE TO DEFAULT 
+// SECURED ROUTE: RESET A PARTICULAR EMAIL-TEMPLATE TO DEFAULT
+export const resetEmailTemplateToDefault = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Admin-auth middleware: Authenticate the admin
+    const adminId = req.admin?.id;
+
+    // Project-validation middleware: Validate the project
+    const projectId = req.project?.id;
+
+    // Get the EmailTemplate name from Request-Body
+    const emailTemplate = req.params.emailTemplate;
+    if (
+      !Object.values(EmailTemplateName).includes(
+        emailTemplate as EmailTemplateName
+      )
+    ) {
+      throw new ApiError(
+        responseType.INVALID_FORMAT.code,
+        responseType.INVALID_FORMAT.type,
+        "Email-Template provided in the Request-body is invalid."
+      );
+    }
+
+    const projectFromDB = await Project.findById(projectId);
+    const emailTemplatesObject = { ...projectFromDB?.config.emailTemplates };
+    // Remove the particular emailTemplate property from the emailTemplates-object
+    const {
+      [emailTemplate as keyof EmailTemplateConfig]: _,
+      ...updatedEmailTemplates
+    } = emailTemplatesObject;
+    // Update the Project-document
+    projectFromDB!.config.emailTemplates = updatedEmailTemplates;
+    await projectFromDB?.save();
+
+    // Send response
+    res
+      .status(responseType.SUCCESSFUL.code)
+      .json(
+        new ApiResponse(
+          responseType.SUCCESSFUL.code,
+          responseType.SUCCESSFUL.type,
+          `Email-Template: ${emailTemplate} reset to default successfully.`,
+          {}
+        )
+      );
+  }
+);
 
 // SECURED ROUTE: RESET A PARTICULAR SECURITY-SETTING TO DEFAULT
+export const resetSecuritySettingToDefault = asyncHandler(
+  async (req: IRequest, res: Response) => {}
+);

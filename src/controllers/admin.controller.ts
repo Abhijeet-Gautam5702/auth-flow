@@ -435,6 +435,5 @@ export const verifyUserFromConsole = asyncHandler(
   }
 );
 
-// BLOCK A USER
+// GET UNIQUE USER-COUNT ENROLLED IN THE PROJECT
 
-// UNBLOCK A USER

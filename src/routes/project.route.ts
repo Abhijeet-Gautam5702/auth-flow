@@ -6,6 +6,7 @@ import {
   deleteProject,
   getAllProjects,
   getProject,
+  resetEmailTemplateToDefault,
   updateEmailTemplates,
   updateLoginMethods,
   updateSecurity,
@@ -25,6 +26,8 @@ router.route("/update/security").put(validateProject, updateSecurity);
 router
   .route("/update/email-templates")
   .put(validateProject, updateEmailTemplates);
+
+router.route("/reset/email-template/:emailTemplate").put(validateProject, resetEmailTemplateToDefault)
 
 // Endpoints related to all projects under an admin
 const router2 = Router();
