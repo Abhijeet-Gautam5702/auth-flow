@@ -1,5 +1,13 @@
+import { Resend } from "resend";
+import { env, ORG_EMAIL, ORG_NAME, responseType } from "../constants";
+import { ApiError } from "../utils/custom-api-error";
+import { logger } from "../utils/logger";
+
 export class Email {
-  private  _helperEmail = (
+  private resend = new Resend(env.secret.resendApiKey);
+  private organization = `${ORG_NAME} <${ORG_EMAIL}>`;
+
+  private _helperEmail = (
     title: string,
     message: string,
     buttonText: string,
@@ -239,41 +247,68 @@ export class Email {
 `;
   };
 
-  // Add the sendEmail method here (remove from utility)
+  public send = async (
+    userEmail: string,
+    subject: string,
+    template: string
+  ) => {
+    const { data, error } = await this.resend.emails.send({
+      from: this.organization,
+      to: "abhidevelops572@gmail.com", // TODO: Change this to `userEmail` after buying a Resend plan and registering the backend domain on Resend
+      subject: subject,
+      html: template,
+    });
 
-  public  userVerification = (link: string) => {
+    if (error) {
+      logger(
+        responseType.VALIDATION_ERROR.type,
+        `Resend Service error | ${error.message}`
+      );
+      throw new ApiError(
+        responseType.VALIDATION_ERROR.code,
+        responseType.VALIDATION_ERROR.type,
+        "Email could not be sent correctly.",
+        error
+      );
+    }
+
+    return data;
+  };
+
+  public userVerification = (link: string) => {
     return this._helperEmail(
-      "Verify you AuthWave account",
+      "Verify your AuthWave account",
       "Thank you for creating an account with AuthWave! To ensure the security of your account and access all features, please verify your email address by clicking the button below.",
       "Verify your email",
       link
     );
   };
-  public  resetPassword = (link:string) => {
+  public resetPassword = (link: string) => {
     return this._helperEmail(
-        "Password Reset Request for AuthWave Account",
-        "We received a request to reset your password for your AuthWave account. To proceed with the password reset, please click the button below. (If you didn't request this change, you can safely ignore this email.)",
-        "Reset Password",
-        link
-    )
+      "Password Reset Request for AuthWave Account",
+      "We received a request to reset your password for your AuthWave account. To proceed with the password reset, please click the button below. (If you didn't request this change, you can safely ignore this email.)",
+      "Reset Password",
+      link
+    );
   };
-  public  magicURLonEmail = (link:string) => {
+  public magicURLonEmail = (link: string) => {
     return this._helperEmail(
-        "One-Click Login Link for AuthWave Authentication",
-        "You've requested to sign in to your AuthWave account via Magic-URL. Click the button below to securely log in with one click.",
-        "Click to Login",
-        link
-    )
+      "One-Click Login Link for AuthWave Authentication",
+      "You've requested to sign in to your AuthWave account via Magic-URL. Click the button below to securely log in with one click.",
+      "Click to Login",
+      link
+    );
   };
-  public  OTPonEmail = (password:string) => {
+  public OTPonEmail = (password: string) => {
     return this._helperEmail(
-        "One-Time Password for AuthWave Authentication",
-        "Here's your one-time password (OTP) to access your AuthWave account. Enter this code to proceed with your authentication.",
-        password
-    )
+      "One-Time Password for AuthWave Authentication",
+      "Here's your one-time password (OTP) to access your AuthWave account. Enter this code to proceed with your authentication.",
+      password
+    );
   };
-  public  userLimitExceeded = (link:string) => {};
-  public  userSessionLimitExceeded = () => {};
+
+  public userLimitExceeded = () => {};
+  public userSessionLimitExceeded = () => {};
 }
 
-export const defaultEmail = new Email();
+export const emailService = new Email();

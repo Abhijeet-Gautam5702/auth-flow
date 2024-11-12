@@ -18,8 +18,6 @@ import { Session } from "../models/session.model";
 import { EventCode, IProject, IRequest, IUser } from "../types/types";
 import { parseUserAgent } from "../utils/user-agent-parser";
 import { Project } from "../models/project.model";
-import { sendMail } from "../utils/mailer";
-import { emailGenerator } from "../utils/email-generator";
 import jwt from "jsonwebtoken";
 import { ZEmail, ZPassword } from "../schema/zod.schema";
 import { otp } from "../features/otp";
@@ -27,7 +25,7 @@ import mongoose from "mongoose";
 import { accountLockout } from "../features/account-lockout";
 import { securityLog } from "../features/security-log";
 import { Log } from "../models/security-log.model";
-import { defaultEmail } from "../features/email";
+import { emailService } from "../features/email";
 
 // CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
@@ -609,17 +607,17 @@ export const verifyEmail = asyncHandler(
       // Generate an email to be sent to the user-inbox (either the custom one or default)
       const userVerificationEmail =
         customEmailTemplate ||
-        defaultEmail.userVerification(
+        emailService.userVerification(
           `${frontendDomain}/user/verify?token=${verificationToken}`
         ); // TODO: The frontend website link will be taken from the client (not user) OR the Authwave frontend website link can be used
 
       // Send email to the user
-      const emailResponse = await sendMail({
-        organization: `${ORG_NAME} <${ORG_EMAIL}>`,
-        userEmail: userFromDB.email,
-        subject: "User Verification request for your AuthWave account",
-        template: userVerificationEmail,
-      });
+      const emailResponse = await emailService.send(
+        userFromDB.email,
+        "Verify your AuthWave Account",
+        userVerificationEmail
+      )
+
 
       // Log an event
       await securityLog.logEvent({
@@ -786,18 +784,16 @@ export const resetPassword = asyncHandler(
       // Generate the email to be sent to the user inbox (either default or custom)
       const resetPasswordEmail =
         projectFromDB.config.emailTemplates?.resetPassword ||
-        defaultEmail.resetPassword(
+        emailService.resetPassword(
           `${frontendDomain}/user/reset-password?token=${resetPasswordToken}`
         ); // TODO: The frontend website link will be taken from the client (not user) OR the Authwave frontend website link can be used
 
       // Send email to the user
-      const emailResponse = await sendMail({
-        organization: `${ORG_NAME} <${ORG_EMAIL}>`,
-        userEmail: userFromDB.email,
-        subject:
-          "Password Reset Request for Your AuthWave Account – Action Required",
-        template: resetPasswordEmail,
-      });
+      const emailResponse = await emailService.send(
+        userFromDB.email,
+        "Verify your AuthWave Account",
+        resetPasswordEmail
+      )
 
       // Log an event
       await securityLog.logEvent({
@@ -1186,17 +1182,16 @@ export const magicURLAuth = asyncHandler(
       // Generate the email to be sent to the user inbox (either default or custom)
       const magicURLVerificationEmail =
         projectFromDB.config.emailTemplates?.magicURLonEmail ||
-        defaultEmail.magicURLonEmail(
+        emailService.magicURLonEmail(
           `${frontendDomain}/user/auth/magic-url?magicURLToken=${magicURLToken}`
         ); // TODO: The frontend website link will be taken from the client (not user) OR the Authwave frontend website link can be used
 
       // Send email to the user
-      const emailResponse = await sendMail({
-        organization: `${ORG_NAME} <${ORG_EMAIL}>`,
-        userEmail: createdUser.email,
-        subject: "Complete your Magic-URL authentication",
-        template: magicURLVerificationEmail,
-      });
+      const emailResponse = await emailService.send(
+        createdUser.email,
+        "Verify your AuthWave Account",
+        magicURLVerificationEmail
+      )
 
       // Log an event
       await securityLog.logEvent({
@@ -1518,15 +1513,14 @@ export const emailOTPAuth = asyncHandler(
       // Generate the email to be sent to the user inbox (either default or custom)
       const otpVerificationEmail =
         projectFromDB.config.emailTemplates?.OTPonEmail ||
-        defaultEmail.OTPonEmail(newOtp.unhashedOTP);
+        emailService.OTPonEmail(newOtp.unhashedOTP);
 
       // Send email to the user
-      const emailResponse = await sendMail({
-        organization: `${ORG_NAME} <${ORG_EMAIL}>`,
-        userEmail: user.email,
-        subject: "Complete your OTP Authentication",
-        template: otpVerificationEmail,
-      });
+      const emailResponse = await emailService.send(
+        user.email,
+        "Verify your AuthWave Account",
+        otpVerificationEmail
+      )
 
       // Log an event
       await securityLog.logEvent({

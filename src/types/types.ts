@@ -57,14 +57,6 @@ export interface ISignupInput {
   password: string;
 }
 
-// Mailer inputs interface
-export interface IMailerInput {
-  organization: string;
-  userEmail: string;
-  subject: string;
-  template: string;
-}
-
 /* ---------------------- ACCOUNT LOCKOUT CLASS --------------------------------------- */
 
 export type IClientIP = string;
