@@ -31,11 +31,15 @@ const ProjectSchema = new Schema<IProject, IProjectModel, IProjectMethods>(
       security: {
         userLimit: {
           type: Number,
-          default: 1000,
+          default: 100,
+          min: 100,
+          max: 1000,
         },
         userSessionLimit: {
           type: Number,
           default: 5,
+          min: 5,
+          max: 10,
         },
       },
       emailTemplates: {
