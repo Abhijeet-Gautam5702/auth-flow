@@ -1,6 +1,6 @@
 /* ------------------------------ SESSION MODEL TYPES ------------------------------------ */
 
-import mongoose, { Model } from "mongoose";
+import mongoose, { Model,Schema,Document } from "mongoose";
 
 // Device-type enum
 export enum DeviceType {
@@ -17,7 +17,7 @@ export interface UserAgent {
 }
 
 // Mongoose: SessionBase (base interface)
-export interface ISessionBase extends Document {
+export interface ISessionBase  {
   projectId: mongoose.Schema.Types.ObjectId;
   userId: mongoose.Schema.Types.ObjectId;
   accessToken: string;
@@ -31,7 +31,7 @@ export interface ISessionBase extends Document {
 export interface ISessionMethods {}
 
 // Mongoose: Session interface (combined)
-export interface ISession extends ISessionBase, ISessionMethods, Document {}
+export interface ISession extends ISessionBase, ISessionMethods, Document<Schema.Types.ObjectId> {}
 
 // Mongoose: Session Model interface
 export type ISessionModel = Model<ISession, {}, ISessionMethods>;

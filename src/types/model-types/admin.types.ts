@@ -1,6 +1,6 @@
 /* ------------------------------ ADMIN MODEL TYPES ------------------------------------ */
 
-import { Model } from "mongoose";
+import { Model,Document, Schema } from "mongoose";
 
 export interface IAdminBase {
     email: string;
@@ -15,6 +15,6 @@ export interface IAdminBase {
     validatePassword(password: string): Promise<boolean>;
   }
   
-  export interface IAdmin extends IAdminBase, IAdminMethods, Document {}
+  export interface IAdmin extends IAdminBase, IAdminMethods, Document<Schema.Types.ObjectId> {}
   
   export type IAdminModel = Model<IAdmin, {}, IAdminMethods>;

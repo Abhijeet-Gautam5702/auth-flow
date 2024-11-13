@@ -1,6 +1,6 @@
 /* ------------------------------ PROJECT MODEL TYPES ------------------------------------ */
 
-import mongoose, { Model } from "mongoose";
+import mongoose, { Model, Document } from "mongoose";
 
 // LoginMethods interface
 export interface LoginMethods {
@@ -18,12 +18,12 @@ export interface SecurityConfig {
 
 // Enum for Email-Template (used in Email-Template-Reset-to-default controller)
 export enum EmailTemplateName {
-  USER_VERIFICATION="userVerification",
-  RESET_PASSWORD="resetPassword",
-  USER_LIMIT_EXCEEDED="userLimitExceeded",
-  USER_SESSION_LIMIT_EXCEEDED="userSessionLimitExceeded",
-  OTP_ON_EMAIL="OTPonEmail",
-  MAGIC_URL_ON_EMAIL="magicURLonEmail",
+  USER_VERIFICATION = "userVerification",
+  RESET_PASSWORD = "resetPassword",
+  USER_LIMIT_EXCEEDED = "userLimitExceeded",
+  USER_SESSION_LIMIT_EXCEEDED = "userSessionLimitExceeded",
+  OTP_ON_EMAIL = "OTPonEmail",
+  MAGIC_URL_ON_EMAIL = "magicURLonEmail",
 }
 
 // EmailTemplate interface
@@ -55,7 +55,10 @@ export interface IProjectBase {
 export interface IProjectMethods {}
 
 // Mongoose: Combined interface for a Project Document
-export interface IProject extends IProjectBase, IProjectMethods, Document {}
+export interface IProject
+  extends IProjectBase,
+    IProjectMethods,
+    Document<mongoose.Schema.Types.ObjectId> {}
 
 // Mongoose: Type for model methods on Project Model
 export type IProjectModel = Model<IProject, {}, IProjectMethods>;
