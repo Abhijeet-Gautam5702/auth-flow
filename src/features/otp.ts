@@ -41,8 +41,8 @@ class OTP {
   // Authentication-related OTP methods
   public authentication = {
     generate: async (payload: {
-      userId: mongoose.Types.ObjectId | string | undefined;
-      projectId: mongoose.Types.ObjectId | string | undefined;
+      userId: mongoose.Schema.Types.ObjectId | string | undefined;
+      projectId: mongoose.Schema.Types.ObjectId | string | undefined;
     }): Promise<object> => {
       try {
         const unhashedOTP = `${payload.userId}-${OTP.generatePassword(

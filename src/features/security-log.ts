@@ -1,4 +1,4 @@
-import mongoose, { skipMiddlewareFunction } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { EventCode } from "../types/types";
 import { logger } from "../utils/logger";
 import { responseType } from "../constants";
@@ -7,11 +7,11 @@ import { User } from "../models/user.model";
 import { Log } from "../models/security-log.model";
 
 type IEventInput = {
-  userId: mongoose.Types.ObjectId | string;
+  userId: mongoose.Schema.Types.ObjectId | string;
   eventCode: EventCode;
   eventSuccess: boolean;
   message?: string;
-  sessionId?: mongoose.Types.ObjectId | string;
+  sessionId?: mongoose.Schema.Types.ObjectId | string;
 };
 
 type ILogInput = {

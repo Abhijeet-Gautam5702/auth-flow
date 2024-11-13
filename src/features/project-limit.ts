@@ -17,7 +17,6 @@ export class ProjectLimit {
   public userActivityThreshold: number = 90; // Accounts inactive for 3 months will be deleted
   private maxUserSessions: number = 5;
 
-  /* --------------------------------------------------------------------------------- */
   private constructor(
     project: IProject,
     admin: IAdmin,
@@ -30,7 +29,14 @@ export class ProjectLimit {
     this.userCount = userCount;
   }
 
-  public create = async (projectId: mongoose.Types.ObjectId) => {
+  /* ------------------------------ STATIC METHODS ------------------------------------- */
+
+  // Static create-method
+  /*
+    NOTE: 
+    The constructor cannot be asynchronous, but we need to make database calls to initialize the class variables. So, we create a static method (that is called on the entire class and not the instances) on the ProjectLimit class which can be asynchronous, execute all the database calls and then invoke the constructor to give an instance of ProjectLimit class. 
+  */
+  public static create = async (projectId: mongoose.Schema.Types.ObjectId) => {
     try {
       const aggregationResult = await Project.aggregate([
         {
@@ -71,7 +77,7 @@ export class ProjectLimit {
     }
   };
 
-  /* --------------------------------------------------------------------------------- */
+  /* ------------------------------ INSTANCE METHODS ------------------------------------- */
 
   // Clear all the inactive user-accounts of the project
   public clearInactiveUserAccounts = async () => {

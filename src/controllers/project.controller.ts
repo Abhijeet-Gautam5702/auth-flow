@@ -387,13 +387,13 @@ export const deleteProject = asyncHandler(
 export const deleteAllProjects = asyncHandler(
   async (req: IRequest, res: Response) => {
     // Admin-auth middleware: Authenticate the admin
-    const adminId = req.admin?.id as string;
+    const adminId = req.admin?.id;
 
     // Get all the projects created by the admin
     const allProjectIDs = await Project.aggregate([
       {
         $match: {
-          owner: new mongoose.Types.ObjectId(adminId),
+          owner: adminId,
         },
       },
       {
@@ -587,7 +587,9 @@ export const clearInactiveUserAccounts = asyncHandler(
     const projectId = req.project?.id;
 
     // Clear the inactive accounts
-    const projectLimit = new ProjectLimit(projectId!);
+    const projectLimit = await ProjectLimit.create(
+      projectId!
+    );
     const deletedAccountCount = await projectLimit.clearInactiveUserAccounts();
 
     // Send response

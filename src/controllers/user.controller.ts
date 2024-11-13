@@ -21,16 +21,21 @@ import { Project } from "../models/project.model";
 import jwt from "jsonwebtoken";
 import { ZEmail, ZPassword } from "../schema/zod.schema";
 import { otp } from "../features/otp";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { accountLockout } from "../features/account-lockout";
 import { securityLog } from "../features/security-log";
 import { Log } from "../models/security-log.model";
 import { emailService } from "../features/email";
+import { ProjectLimit } from "../features/project-limit";
 
 // CREATE USER ACCOUNT
 export const createAccount = asyncHandler(
   async (req: IRequest, res: Response) => {
     // Project-validation middleware: Authenticate the Project
+    const projectId = req.project?.id;
+
+    // Create and instantiate a new ProjectLimit object
+    const projectLimit = await ProjectLimit.create(projectId!);
 
     // Get the user credentials
     const { username, email, password } = req.body;
@@ -77,6 +82,9 @@ export const createAccount = asyncHandler(
       username,
       password,
     });
+
+    // Handle new User-Account creation
+    await projectLimit.handleNewUserAccount();
 
     // Remove sensitive data from the user-data (newly created)
     /* Note: Another database call is not made to reduce the number of interactions with the Database */
@@ -389,7 +397,7 @@ export const deleteAccount = asyncHandler(
     */
     let userId = req.user?.id;
     if (!userId) {
-      userId = req.params.userId as string;
+      userId = new mongoose.Schema.Types.ObjectId(req.params.userId);
     }
 
     // Delete all sessions whose userId matches with `userId`
@@ -426,14 +434,14 @@ export const getAllLoginSessions = asyncHandler(
     */
     let userId = req.user?.id;
     if (!userId) {
-      userId = req.params.userId as string;
+      userId = new mongoose.Schema.Types.ObjectId(req.params.userId);
     }
 
     // MONGODB AGGREGATION: Get all session documents
     const sessions = await Session.aggregate([
       {
         $match: {
-          userId: new mongoose.Types.ObjectId(userId),
+          userId: userId,
         },
       },
       {
@@ -457,7 +465,7 @@ export const getAllLoginSessions = asyncHandler(
     const responseData = {
       projectId: req.project?.id,
       user,
-      sessionCount:sessions.length,
+      sessionCount: sessions.length,
       sessions,
     };
 
@@ -484,7 +492,7 @@ export const deleteLoginSessionByID = asyncHandler(
     */
     let userId = req.user?.id;
     if (!userId) {
-      userId = req.body.userId as string;
+      userId = req.body.userId;
     }
 
     // Get the sessionId from the request params
@@ -519,7 +527,7 @@ export const deleteAllLoginSessions = asyncHandler(
     */
     let userId = req.user?.id;
     if (!userId) {
-      userId = req.params.userId as string;
+      userId = new mongoose.Schema.Types.ObjectId(req.params.userId);
     }
 
     // Delete all session-documents
@@ -616,8 +624,7 @@ export const verifyEmail = asyncHandler(
         userFromDB.email,
         "Verify your AuthWave Account",
         userVerificationEmail
-      )
-
+      );
 
       // Log an event
       await securityLog.logEvent({
@@ -793,7 +800,7 @@ export const resetPassword = asyncHandler(
         userFromDB.email,
         "Verify your AuthWave Account",
         resetPasswordEmail
-      )
+      );
 
       // Log an event
       await securityLog.logEvent({
@@ -1191,7 +1198,7 @@ export const magicURLAuth = asyncHandler(
         createdUser.email,
         "Verify your AuthWave Account",
         magicURLVerificationEmail
-      )
+      );
 
       // Log an event
       await securityLog.logEvent({
@@ -1495,7 +1502,7 @@ export const emailOTPAuth = asyncHandler(
           "User could not be created in the database."
         );
       }
-      const userId = user._id as string | mongoose.Types.ObjectId;
+      const userId = user._id as string | mongoose.Schema.Types.ObjectId;
 
       // Create a fresh OTP
       const newOtp = (await otp.authentication.generate({
@@ -1520,7 +1527,7 @@ export const emailOTPAuth = asyncHandler(
         user.email,
         "Verify your AuthWave Account",
         otpVerificationEmail
-      )
+      );
 
       // Log an event
       await securityLog.logEvent({
