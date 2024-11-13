@@ -1,11 +1,13 @@
 import { Router } from "express";
 import {
+  clearInactiveUserAccounts,
   createNewProjectKey,
   createProject,
   deleteAllProjects,
   deleteProject,
   getAllProjects,
   getProject,
+  projectOverview,
   resetEmailTemplateToDefault,
   updateEmailTemplates,
   updateLoginMethods,
@@ -27,7 +29,18 @@ router
   .route("/update/email-templates")
   .put(validateProject, updateEmailTemplates);
 
-router.route("/reset/email-template/:emailTemplate").put(validateProject, resetEmailTemplateToDefault)
+router
+  .route("/reset/email-template/:emailTemplate")
+  .put(validateProject, resetEmailTemplateToDefault);
+router
+  .route("/reset/security-setting")
+  .put(validateProject, resetEmailTemplateToDefault);
+
+router.route("/overview").get(validateProject, projectOverview);
+
+router
+  .route("/remove-inactive-accounts")
+  .delete(validateProject, clearInactiveUserAccounts);
 
 // Endpoints related to all projects under an admin
 const router2 = Router();
@@ -35,5 +48,5 @@ const router2 = Router();
 router2.route("/").get(getAllProjects);
 router2.route("/delete").delete(deleteAllProjects);
 
-export const projectRouter = router;// router for handling single project
-export const multipleProjectsRouter = router2;// router for handling multiple projects at a time
+export const projectRouter = router; // router for handling single project
+export const multipleProjectsRouter = router2; // router for handling multiple projects at a time

@@ -19,6 +19,7 @@ import {
   EmailTemplateConfig,
   EmailTemplateName,
 } from "../types/model-types/project.types";
+import { ProjectLimit } from "../features/project-limit";
 
 // SECURED ROUTE: CREATE NEW PROJECT
 export const createProject = asyncHandler(
@@ -540,5 +541,65 @@ export const resetSecuritySettingToDefault = asyncHandler(
           {}
         )
       );
+  }
+);
+
+// SECURED ROUTE: GET THE PROJECT DETAILS IN THE PROJECT-OVERVIEW
+export const projectOverview = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Admin-auth middleware: Authenticate the admin
+    const adminId = req.admin?.id;
+
+    // Project-Validation middleware: Validate the project
+    const projectId = req.project?.id;
+
+    // Get the number of unique users enrolled in the project
+    const uniqueUserCount = await User.countDocuments({
+      projectId,
+    });
+
+    // Create response-data
+    const responseData = {
+      uniqueUserCount,
+    };
+
+    // Send response
+    res
+      .status(responseType.SUCCESSFUL.code)
+      .json(
+        new ApiResponse(
+          responseType.SUCCESSFUL.code,
+          responseType.SUCCESSFUL.type,
+          "Project Overview details fetched successfully.",
+          responseData
+        )
+      );
+  }
+);
+
+// SECURED ROUTE: CLEAR ALL THE INACTIVE USER-ACCOUNTS IN A PROJECT
+export const clearInactiveUserAccounts = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Admin-auth middleware: Authenticate the admin
+    const adminId = req.admin?.id;
+
+    // Project-Validation middleware: Validate the project
+    const projectId = req.project?.id;
+
+    // Clear the inactive accounts
+    const projectLimit = new ProjectLimit(projectId!);
+    const deletedAccountCount = await projectLimit.clearInactiveUserAccounts();
+
+    // Send response
+    res.status(responseType.DELETED.code).json(
+      new ApiResponse(
+        responseType.DELETED.code,
+        responseType.DELETED.type,
+        `Inactive User-Accounts (with no activity in the last ${projectLimit.userActivityThreshold} days) deleted successfully`,
+        {
+          deletedItems: deletedAccountCount,
+        }
+      )
+    );
   }
 );
