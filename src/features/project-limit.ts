@@ -7,29 +7,71 @@ import { Session } from "../models/session.model";
 import { Log } from "../models/security-log.model";
 import { emailService } from "./email";
 import { Admin } from "../models/admin.model";
+import { IAdmin, IProject } from "../types/types";
 
 export class ProjectLimit {
+  private project: IProject;
+  private admin: IAdmin;
+  public userCount: number;
   private maxUsers: number = 100;
-  private maxUserSessions: number = 5;
-  private projectId: mongoose.Types.ObjectId | string;
   public userActivityThreshold: number = 90; // Accounts inactive for 3 months will be deleted
+  private maxUserSessions: number = 5;
 
-  constructor(projectId: mongoose.Types.ObjectId | string) {
-    this.projectId = projectId;
-    (async () => {
-      try {
-        const project = await Project.findById(projectId);
-        this.maxUsers = project?.config.security?.userLimit!;
-        this.maxUserSessions = project?.config.security?.userSessionLimit!;
-      } catch (error: any) {
-        logger(
-          responseType.UNSUCCESSFUL.type,
-          `ProjectLimit class initiaton failed | Error: ${error.message}`
-        );
-        throw error;
-      }
-    })();
+  /* --------------------------------------------------------------------------------- */
+  private constructor(
+    project: IProject,
+    admin: IAdmin,
+    userCount: number,
+    maxUsers: number
+  ) {
+    this.project = project;
+    this.admin = admin;
+    this.maxUsers = maxUsers;
+    this.userCount = userCount;
   }
+
+  public create = async (projectId: mongoose.Types.ObjectId) => {
+    try {
+      const aggregationResult = await Project.aggregate([
+        {
+          $match: {
+            _id: projectId,
+          },
+        },
+        {
+          $lookup: {
+            from: "admins",
+            localField: "owner",
+            foreignField: "_id",
+            as: "admin",
+          },
+        },
+        {
+          $unwind: "$admin",
+        },
+        {
+          $project: {
+            owner: 0,
+            __v: 0,
+          },
+        },
+      ]);
+      const project = aggregationResult[0];
+      const admin = project.admin;
+      const userCount = await User.countDocuments({ projectId });
+      const maxUsers = project.config.security.userLimit;
+
+      return new ProjectLimit(project, admin, userCount, maxUsers);
+    } catch (error: any) {
+      logger(
+        responseType.UNSUCCESSFUL.type,
+        `ProjectLimit class initiaton failed | Error: ${error.message}`
+      );
+      throw error;
+    }
+  };
+
+  /* --------------------------------------------------------------------------------- */
 
   // Clear all the inactive user-accounts of the project
   public clearInactiveUserAccounts = async () => {
@@ -38,7 +80,7 @@ export class ProjectLimit {
       const enrolledUsers = await User.aggregate([
         {
           $match: {
-            projectId: new mongoose.Types.ObjectId(this.projectId),
+            projectId: this.project._id,
           },
         },
         {
@@ -56,8 +98,7 @@ export class ProjectLimit {
       // Create threshold date
       const now = new Date();
       const thresholdDate = new Date(
-        // now.getTime() - this.userActivityThreshold * 24 * 60 * 60 * 1000
-        now.getTime() - 60 * 60 * 1000 // TESTING ONLY
+        now.getTime() - this.userActivityThreshold * 24 * 60 * 60 * 1000
       );
 
       const BATCH_SIZE = 50; // Process only 50 user-accounts at a time to avoid memory issues
@@ -150,7 +191,7 @@ export class ProjectLimit {
 
       logger(
         responseType.DELETED.type,
-        `Deleted ${inactiveUsers.length} inactive user accounts in Project: ${this.projectId}`
+        `Deleted ${inactiveUsers.length} inactive user accounts in Project: ${this.project._id}`
       );
 
       // Return the count of the inactive users deleted
@@ -168,7 +209,7 @@ export class ProjectLimit {
   public clearExpiredSessions = async () => {
     try {
       await Session.deleteMany({
-        projectId: new mongoose.Types.ObjectId(this.projectId),
+        projectId: this.project._id,
         refreshTokenExpiry: {
           $lte: new Date(),
         },
@@ -176,7 +217,7 @@ export class ProjectLimit {
 
       logger(
         responseType.DELETED.type,
-        `Deleted expired Sessions in Project: ${this.projectId}`
+        `Deleted expired Sessions in Project: ${this.project._id}`
       );
     } catch (error: any) {
       logger(
@@ -190,15 +231,13 @@ export class ProjectLimit {
   // Check if the number of users have crossed the upper-limit and send email to the admin
   public handleNewUserAccount = async () => {
     try {
-      // Count the users enrolled in the project
-      const userCount = await User.countDocuments({
-        projectId: new mongoose.Types.ObjectId(this.projectId),
-      });
+      // Increment the user-count
+      this.userCount +=1;
 
-      // If the users exceed the maxLimit => Send e-mail to the admin
-      if (userCount >= this.maxUsers) {
-        const project = await Project.findById(this.projectId);
-        const projectAdmin = await Admin.findById(project?.owner);
+      // If the userCount exceed the maxLimit => Send e-mail to the admin
+      if (this.userCount >= this.maxUsers) {
+        const project = this.project;
+        const projectAdmin = this.admin;
 
         // Get the email-template (either custom or the default)
         const customEmailTemplate =
@@ -206,8 +245,8 @@ export class ProjectLimit {
         const userLimitExceededEmail =
           customEmailTemplate ||
           emailService.userLimitExceeded({
-            id: String(this.projectId),
-            name: project!.projectName,
+            id: String(this.project._id),
+            name: project.projectName,
           });
 
         // Send email

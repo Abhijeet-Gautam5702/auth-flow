@@ -578,6 +578,7 @@ export class Email {
       project
     );
   };
+  
   public userSessionLimitExceeded = () => {};
 }
 
