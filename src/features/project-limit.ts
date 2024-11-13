@@ -5,6 +5,8 @@ import { responseType } from "../constants";
 import { User } from "../models/user.model";
 import { Session } from "../models/session.model";
 import { Log } from "../models/security-log.model";
+import { emailService } from "./email";
+import { Admin } from "../models/admin.model";
 
 export class ProjectLimit {
   private maxUsers: number = 100;
@@ -47,6 +49,9 @@ export class ProjectLimit {
           },
         },
       ]);
+      if (!enrolledUsers.length) {
+        throw new Error("No users in this project.");
+      }
 
       // Create threshold date
       const now = new Date();
@@ -132,11 +137,6 @@ export class ProjectLimit {
               },
             }).session(transactionSession);
           });
-
-          logger(
-            responseType.DELETED.type,
-            `Deleted ${inactiveUsers.length} inactive user accounts successfully.`
-          );
         } catch (error: any) {
           logger(
             responseType.DATABASE_ERROR.type,
@@ -147,6 +147,11 @@ export class ProjectLimit {
           transactionSession.endSession(); // End the Mongo-DB Session
         }
       }
+
+      logger(
+        responseType.DELETED.type,
+        `Deleted ${inactiveUsers.length} inactive user accounts in Project: ${this.projectId}`
+      );
 
       // Return the count of the inactive users deleted
       return inactiveUsers.length;
@@ -159,16 +164,66 @@ export class ProjectLimit {
     }
   };
 
-  // Clear all the sessions of the project whose refresh token has expired
+  // Clear all the expired sessions of the project
   public clearExpiredSessions = async () => {
-    // Get all the user-IDs enrolled in the project
-    // Delete all the sessions of each user-ID
+    try {
+      await Session.deleteMany({
+        projectId: new mongoose.Types.ObjectId(this.projectId),
+        refreshTokenExpiry: {
+          $lte: new Date(),
+        },
+      });
+
+      logger(
+        responseType.DELETED.type,
+        `Deleted expired Sessions in Project: ${this.projectId}`
+      );
+    } catch (error: any) {
+      logger(
+        responseType.DATABASE_ERROR.type,
+        `Unable to delete expired User-Sessions | ${error.message}`
+      );
+      throw error;
+    }
   };
 
   // Check if the number of users have crossed the upper-limit and send email to the admin
-  public handleExcessiveUserAccounts = async () => {
-    // Count the users enrolled in the project
-    // If the users exceed the maxLimit => Send e-mail to the admin
+  public handleNewUserAccount = async () => {
+    try {
+      // Count the users enrolled in the project
+      const userCount = await User.countDocuments({
+        projectId: new mongoose.Types.ObjectId(this.projectId),
+      });
+
+      // If the users exceed the maxLimit => Send e-mail to the admin
+      if (userCount >= this.maxUsers) {
+        const project = await Project.findById(this.projectId);
+        const projectAdmin = await Admin.findById(project?.owner);
+
+        // Get the email-template (either custom or the default)
+        const customEmailTemplate =
+          project?.config.emailTemplates?.userLimitExceeded;
+        const userLimitExceededEmail =
+          customEmailTemplate ||
+          emailService.userLimitExceeded({
+            id: String(this.projectId),
+            name: project!.projectName,
+          });
+
+        // Send email
+        await emailService.send(
+          projectAdmin?.email!,
+          `⚠️ User Limit Reached`,
+          userLimitExceededEmail
+        );
+      }
+    } catch (error: any) {
+      logger(
+        responseType.DATABASE_ERROR.type,
+        `Unable to handle new User-Account | ${error.message}`
+      );
+      throw error;
+    }
   };
 
   // Check if the number of sessions have crossed the upper-limit and send email to the user
