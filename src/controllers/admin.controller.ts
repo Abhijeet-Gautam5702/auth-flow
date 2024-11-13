@@ -12,6 +12,7 @@ import jwt from "jsonwebtoken";
 import { User } from "../models/user.model";
 import { Session } from "../models/session.model";
 import mongoose from "mongoose";
+import { Project } from "../models/project.model";
 
 /* -------------------------- ADMIN AUTHENTICATION CONTROLLERS ----------------------------- */
 
@@ -435,5 +436,28 @@ export const verifyUserFromConsole = asyncHandler(
   }
 );
 
-// GET UNIQUE USER-COUNT ENROLLED IN THE PROJECT
+// GET THE DASHBOARD METRICS ON THE ADMIN CONSOLE
+export const dashboard = asyncHandler(async (req: IRequest, res: Response) => {
+  // Admin-auth middleware: Authenticate the admin
+  const adminId = req.admin?.id;
 
+  // Get the projects created by the admin
+  const projectsFromDB = await Project.find({ owner: adminId });
+
+  // Create response-data
+  const responseData = {
+    projects: projectsFromDB,
+  };
+
+  // Send response
+  res
+    .status(responseType.SUCCESSFUL.code)
+    .json(
+      new ApiResponse(
+        responseType.SUCCESSFUL.code,
+        responseType.SUCCESSFUL.type,
+        "Project Dashboard details fetched successfully.",
+        responseData
+      )
+    );
+});
