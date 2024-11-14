@@ -1,6 +1,5 @@
 import { IApiResponse } from "../types/types";
 
-// ApiResponse class implements the IApiResponse interface to ensure type-safety
 export class ApiResponse implements IApiResponse {
   message: string;
   statusCode: number;
