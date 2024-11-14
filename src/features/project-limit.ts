@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { Project } from "../models/project.model";
 import { logger } from "../utils/logger";
 import { responseType } from "../constants";
@@ -13,9 +13,10 @@ export class ProjectLimit {
   private project: IProject;
   private admin: IAdmin;
   public userCount: number;
-  private maxUsers: number = 100;
+  public maxUsers: number = 100;
   public userActivityThreshold: number = 90; // Accounts inactive for 3 months will be deleted
   private maxUserSessions: number = 5;
+
 
   private constructor(
     project: IProject,
@@ -36,7 +37,7 @@ export class ProjectLimit {
     NOTE: 
     The constructor cannot be asynchronous, but we need to make database calls to initialize the class variables. So, we create a static method (that is called on the entire class and not the instances) on the ProjectLimit class which can be asynchronous, execute all the database calls and then invoke the constructor to give an instance of ProjectLimit class. 
   */
-  public static create = async (projectId: mongoose.Schema.Types.ObjectId) => {
+  public static create = async (projectId: Types.ObjectId) => {
     try {
       const aggregationResult = await Project.aggregate([
         {
@@ -275,7 +276,9 @@ export class ProjectLimit {
   public handleExcessiveUserSessions = async (
     userId: mongoose.Types.ObjectId | string
   ) => {
-    // Count the user-sessions of the given userId
-    // If the user-sessions exceed the maxLimit => Send e-mail to the admin
+    // Count the updated user-sessions count
+    const userSessionCount = await Session.countDocuments({userId});
+
+    // If the user's session-count exceed the maxLimit => Send email to the user
   };
 }

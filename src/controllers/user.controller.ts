@@ -34,14 +34,14 @@ export const createAccount = asyncHandler(
     // Project-validation middleware: Authenticate the Project
     const projectId = req.project?.id;
 
-    // Create and instantiate a new ProjectLimit object
+    // Block any new user-authentication requests
     const projectLimit = await ProjectLimit.create(projectId!);
-    if(projectLimit.userCount >= projectLimit.maxUsers){
+    if (projectLimit.userCount >= projectLimit.maxUsers) {
       throw new ApiError(
         responseType.SERVICE_UNAVAILABLE.code,
         responseType.SERVICE_UNAVAILABLE.type,
         `The application has exceeded the maximum user-limit. Please contact the developer to increase the user-limit.`
-      )
+      );
     }
 
     // Get the user credentials
@@ -1106,12 +1106,24 @@ export const magicURLAuth = asyncHandler(
   async (req: IRequest, res: Response) => {
     // Project Validation middleware: Validate the project
     const projectId = req.project?.id;
-    const projectFromDB: IProject = (await Project.findById(
-      projectId
-    )) as IProject;
+    const projectFromDB = await Project.findById(projectId);
+
+    // Block any new user-authentication requests
+    /*
+      NOTE: 
+      MAGIC-URL Auth works in such a way that once the URL has been created and verified, the user need not create any further URLs for logging into the system. This is because the browser cookies will be populated with refresh & access tokens and everything else will work similar to Password-based Login from there onwards.
+    */
+    const projectLimit = await ProjectLimit.create(projectId!);
+    if (projectLimit.userCount >= projectLimit.maxUsers) {
+      throw new ApiError(
+        responseType.SERVICE_UNAVAILABLE.code,
+        responseType.SERVICE_UNAVAILABLE.type,
+        `The application has exceeded the maximum user-limit. Please contact the developer to increase the user-limit.`
+      );
+    }
 
     // Check if magic-URL is enabled in the project
-    if (!projectFromDB.config.loginMethods.magicURLonEmail) {
+    if (!projectFromDB?.config.loginMethods.magicURLonEmail) {
       throw new ApiError(
         responseType.SERVICE_UNAVAILABLE.code,
         responseType.SERVICE_UNAVAILABLE.type,
@@ -1203,7 +1215,7 @@ export const magicURLAuth = asyncHandler(
       // Send email to the user
       const emailResponse = await emailService.send(
         createdUser.email,
-        "Verify your AuthWave Account",
+        "Magic-URL Authentication: AuthWave",
         magicURLVerificationEmail
       );
 
@@ -1407,6 +1419,9 @@ export const magicURLAuth = asyncHandler(
         },
       ]);
 
+      // Handle new User-Account creation
+      await projectLimit.handleNewUserAccount();
+
       // Log an event
       await securityLog.logEvent({
         userId: userFromDB._id,
@@ -1454,7 +1469,10 @@ export const emailOTPAuth = asyncHandler(
     const projectId = req.project?.id;
     const projectFromDB = await Project.findById(projectId);
 
-    // Check if magic-URL is enabled in the project
+    // Create a new ProjectLimit instance
+    const projectLimit = await ProjectLimit.create(projectId!);
+
+    // Check if OTP-based auth is enabled in the project
     if (!projectFromDB?.config.loginMethods.OTPonEmail) {
       throw new ApiError(
         responseType.SERVICE_UNAVAILABLE.code,
@@ -1492,6 +1510,20 @@ export const emailOTPAuth = asyncHandler(
       // If the user doesn't exist in the database, create a new user document (with email only)
       const userFromDB = await User.findOne({ email }).select("-password");
       if (!userFromDB) {
+        // Block any new user-authentication requests
+        /*
+          NOTE: 
+          OTP Auth works in such a way that once the URL has been created and verified, the user need not create any further OTPs for logging into the system until the access-token expires (no refresh token generation in this case, unlike Magic-URL auth).
+        */
+        if (projectLimit.userCount >= projectLimit.maxUsers) {
+          throw new ApiError(
+            responseType.SERVICE_UNAVAILABLE.code,
+            responseType.SERVICE_UNAVAILABLE.type,
+            `The application has exceeded the maximum user-limit. Please contact the developer to increase the user-limit.`
+          );
+        }
+
+        // Create a new user
         await User.create({
           projectId,
           username: undefined,
@@ -1532,7 +1564,7 @@ export const emailOTPAuth = asyncHandler(
       // Send email to the user
       const emailResponse = await emailService.send(
         user.email,
-        "Verify your AuthWave Account",
+        "OTP Authentication: AuthWave",
         otpVerificationEmail
       );
 
@@ -1702,6 +1734,9 @@ export const emailOTPAuth = asyncHandler(
       }
 
       // Create a new corresponding session
+      /*
+        NOTE: No refresh token will be generated in OTP-auth. Everytime the access-token expires, a new OTP will be needed.
+      */
       const createdSession = await Session.create({
         projectId,
         userId: userFromDB._id,
@@ -1717,6 +1752,18 @@ export const emailOTPAuth = asyncHandler(
       userFromDB.token = undefined;
       userFromDB.tokenExpiry = undefined;
       await userFromDB.save();
+
+      // If new user has been created => Handle it
+      /*
+        NOTE:
+        There can be 2 cases:-
+        1. The user account was newly created (therefore, the createdAt property will be within 15 minutes before the current time)
+        2. The user account was already created and this request is for logging-in again (in this case, the createdAt property will be older than 15 minutes before current time)
+      */
+      const now = new Date();
+      if (userFromDB.createdAt >= new Date(now.getTime() - 15 * 60 * 1000)) {
+        await projectLimit.handleNewUserAccount();
+      }
 
       // Create response-data
       const responseData = await Session.aggregate([
