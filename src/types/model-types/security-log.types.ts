@@ -1,6 +1,6 @@
 /* --------------------------- SECURITY-LOG MODEL TYPES ------------------------------------ */
 
-import mongoose, { Model,Document, Schema } from "mongoose";
+import mongoose, { Model,Document, Schema, Types } from "mongoose";
 
 export enum EventCode {
   PASSWORD_LOGIN = "PASSWORD_LOGIN",
@@ -33,6 +33,6 @@ export interface ISecurityLogMethods {}
 export interface ISecurityLog
   extends ISecurityLogBase,
     ISecurityLogMethods,
-    Document<Schema.Types.ObjectId> {}
+    Document<Types.ObjectId> {}
 
 export type ISecurityLogModel = Model<ISecurityLog, {}, ISecurityLogMethods>;

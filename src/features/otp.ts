@@ -1,5 +1,5 @@
 import * as bcrypt from "bcrypt";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { logger } from "../utils/logger";
 import { responseType } from "../constants";
 import { ApiError } from "../utils/custom-api-error";
@@ -41,8 +41,8 @@ class OTP {
   // Authentication-related OTP methods
   public authentication = {
     generate: async (payload: {
-      userId: mongoose.Schema.Types.ObjectId | string | undefined;
-      projectId: mongoose.Schema.Types.ObjectId | string | undefined;
+      userId: Types.ObjectId | string | undefined;
+      projectId: Types.ObjectId | string | undefined;
     }): Promise<object> => {
       try {
         const unhashedOTP = `${payload.userId}-${OTP.generatePassword(

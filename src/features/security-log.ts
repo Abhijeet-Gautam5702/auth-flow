@@ -7,16 +7,16 @@ import { User } from "../models/user.model";
 import { Log } from "../models/security-log.model";
 
 type IEventInput = {
-  userId: mongoose.Schema.Types.ObjectId | string;
+  userId: Types.ObjectId | string;
   eventCode: EventCode;
   eventSuccess: boolean;
   message?: string;
-  sessionId?: mongoose.Schema.Types.ObjectId | string;
+  sessionId?: Types.ObjectId | string;
 };
 
 type ILogInput = {
-  userId?: string | mongoose.Types.ObjectId;
-  projectId: string | mongoose.Types.ObjectId;
+  userId?: string | Types.ObjectId;
+  projectId: string | Types.ObjectId;
   startDate: Date;
   endDate: Date;
   page: number;

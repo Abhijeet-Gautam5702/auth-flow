@@ -1,6 +1,6 @@
 /* ------------------------------ USER MODEL TYPES ------------------------------------ */
 
-import mongoose, { Model, Schema, Document } from "mongoose";
+import mongoose, { Model, Schema, Document, Types } from "mongoose";
 
 // Mongoose: Base interface for User-document
 /*
@@ -33,7 +33,7 @@ export interface IUserMethods {
 export interface IUser
   extends IUserBase,
     IUserMethods,
-    Document<Schema.Types.ObjectId> {}
+    Document<Types.ObjectId> {}
 
 // Mongoose: User model type
 /*

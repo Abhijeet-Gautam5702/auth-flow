@@ -10,7 +10,7 @@ import {
   ZUsername,
 } from "./zod.schema";
 import { EventCode, ISignupInput, IValidateSignupInput } from "../types/types";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { ApiError } from "../utils/custom-api-error";
 import { responseType } from "../constants";
 import { z, ZodError } from "zod";
@@ -57,8 +57,8 @@ interface ILogValidationInput {
   itemLimit?: number;
   startDate?: Date;
   endDate?: Date;
-  userId?: mongoose.Types.ObjectId | string;
-  projectId?: mongoose.Types.ObjectId | string;
+  userId?: Types.ObjectId | string;
+  projectId?: Types.ObjectId | string;
   eventCode?: string;
 }
 

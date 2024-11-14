@@ -1,6 +1,6 @@
 /* ------------------------------ PROJECT MODEL TYPES ------------------------------------ */
 
-import mongoose, { Model, Document } from "mongoose";
+import mongoose, { Model, Document, Types } from "mongoose";
 
 // LoginMethods interface
 export interface LoginMethods {
@@ -58,7 +58,7 @@ export interface IProjectMethods {}
 export interface IProject
   extends IProjectBase,
     IProjectMethods,
-    Document<mongoose.Schema.Types.ObjectId> {}
+    Document<Types.ObjectId> {}
 
 // Mongoose: Type for model methods on Project Model
 export type IProjectModel = Model<IProject, {}, IProjectMethods>;

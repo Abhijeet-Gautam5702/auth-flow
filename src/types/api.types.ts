@@ -30,17 +30,17 @@ export interface IApiResponse {
   */
 export interface IRequest extends Request {
   project?: {
-    id?: mongoose.Schema.Types.ObjectId;
+    id?: mongoose.Types.ObjectId;
     key?: string;
   };
   user?: {
-    id?: mongoose.Schema.Types.ObjectId;
+    id?: mongoose.Types.ObjectId;
   };
   admin?: {
-    id?: mongoose.Schema.Types.ObjectId;
+    id?: mongoose.Types.ObjectId;
   };
   session?: {
-    id?: mongoose.Schema.Types.ObjectId;
+    id?: mongoose.Types.ObjectId;
     token?: string;
   };
 }

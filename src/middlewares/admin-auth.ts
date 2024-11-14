@@ -1,5 +1,3 @@
-// Middleware for authenticating the admin (to grant access to secured routes)
-
 import { NextFunction, Request, Response } from "express";
 import { asyncHandler } from "../utils/async-handler";
 import jwt from "jsonwebtoken";

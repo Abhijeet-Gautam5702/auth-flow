@@ -7,7 +7,7 @@ import { ApiError } from "../utils/custom-api-error";
 import { responseType } from "../constants";
 import { Project } from "../models/project.model";
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 
 export const validateProject = asyncHandler(
   async (req: IRequest, res: Response, next: NextFunction) => {
@@ -48,7 +48,7 @@ export const validateProject = asyncHandler(
 
     // Check if the project-key corresponds to the desired project only
     const decodedProjectKey = jwt.decode(projectKey) as {
-      projectId?: string | mongoose.Schema.Types.ObjectId;
+      projectId?: string | Types.ObjectId;
     } | null; // jwt.decode( ) always decodes the token without any error (irrespective of the expiry) & we want exactly that.
 
     if (String(decodedProjectKey?.projectId) != String(projectFromDB._id)) {
@@ -61,7 +61,7 @@ export const validateProject = asyncHandler(
 
     // Attach a project-object to the HTTP-`req` object
     req.project = {
-      id: projectId,
+      id: new Types.ObjectId(projectId),
       key: projectKey,
     };
 

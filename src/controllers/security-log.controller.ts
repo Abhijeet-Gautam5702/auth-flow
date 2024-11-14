@@ -16,7 +16,7 @@ export const getLogsByUserId = asyncHandler(
     const adminId = req.admin?.id;
 
     // Project-Validation-middleware: Validate the project
-    const projectId = req.project?.id as string | mongoose.Types.ObjectId;
+    const projectId = req.project?.id ;
 
     // User-auth-middleware: Authenticate the user
     /*
@@ -52,7 +52,7 @@ export const getLogsByUserId = asyncHandler(
     const logsFromDB = await securityLog.getLogsByUserID({
       userId,
       page,
-      projectId,
+      projectId:projectId!,
       queryItemCount: itemLimit,
       startDate,
       endDate,
