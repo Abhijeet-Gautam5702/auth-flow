@@ -1,6 +1,7 @@
 /* ------------------------------ SESSION MODEL TYPES ------------------------------------ */
 
 import mongoose, { Model, Schema, Document, Types } from "mongoose";
+import { IProject } from "./project.types";
 
 // Device-type enum
 export enum DeviceType {
@@ -44,7 +45,10 @@ export interface ISessionStaticMethods {
   handleNewSession(
     userId: Types.ObjectId,
     projectId: Types.ObjectId
-  ): Promise<boolean>;
+  ): Promise<{
+    success: boolean;
+    project: IProject;
+  }>;
 }
 
 // Mongoose: Session Model interface
