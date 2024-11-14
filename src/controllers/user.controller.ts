@@ -167,6 +167,9 @@ export const getCurrentUser = asyncHandler(
 // CREATE USER LOGIN SESSION
 export const createLoginSession = asyncHandler(
   async (req: IRequest, res: Response) => {
+    // Validate the project
+    const projectId = req.project?.id;
+
     // Get the user credentials
     const { username, email, password } = req.body;
     if (!(username && email && password)) {
@@ -216,6 +219,32 @@ export const createLoginSession = asyncHandler(
         responseType.INCORRECT_PASSWORD.code,
         responseType.INCORRECT_PASSWORD.type,
         "Please provide valid credentials"
+      );
+    }
+
+    // Before creating a new session => Handle it
+    const modelResponse = await Session.handleNewSession(
+      userFromDB._id,
+      projectId!
+    );
+    if (!modelResponse.success) {
+      // Send a warning email to the user
+      const userSessionLimitExceededEmail =
+        modelResponse.project.config.emailTemplates?.userSessionLimitExceeded ||
+        emailService.userSessionLimitExceeded(
+          modelResponse.project.projectName
+        );
+      await emailService.send(
+        userFromDB.email,
+        "Session Limit Exceeded",
+        userSessionLimitExceededEmail
+      );
+
+      // Throw error
+      throw new ApiError(
+        responseType.API_LIMIT_EXCEEDED.code,
+        responseType.API_LIMIT_EXCEEDED.type,
+        `The limit for the user-sessions of the given user has exceeded. Delete some previous sessions or contact your organization to increase User-Sessions Limit.`
       );
     }
 
