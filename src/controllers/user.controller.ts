@@ -1295,6 +1295,34 @@ export const magicURLAuth = asyncHandler(
           "User corresponding to the Magic-URL token not found in the database. Initiate the Magic-URL authentication process again."
         );
       }
+
+      // Before creating a new session => Handle it
+      const modelResponse = await Session.handleNewSession(
+        userFromDB._id,
+        projectId!
+      );
+      if (!modelResponse.success) {
+        // Send a warning email to the user
+        const userSessionLimitExceededEmail =
+          modelResponse.project.config.emailTemplates
+            ?.userSessionLimitExceeded ||
+          emailService.userSessionLimitExceeded(
+            modelResponse.project.projectName
+          );
+        await emailService.send(
+          userFromDB.email,
+          "Session Limit Exceeded",
+          userSessionLimitExceededEmail
+        );
+
+        // Throw error
+        throw new ApiError(
+          responseType.API_LIMIT_EXCEEDED.code,
+          responseType.API_LIMIT_EXCEEDED.type,
+          "User Session Limit has exceeded. Log out from the existing sessions to create a new one."
+        );
+      }
+
       if (userFromDB.token !== magicURLToken) {
         // Track the number of failed login attempts
         accountLockout.handleFailedLoginAttempt(req.ip!, userFromDB.email);
@@ -1537,7 +1565,7 @@ export const emailOTPAuth = asyncHandler(
       }
 
       // If the user doesn't exist in the database, create a new user document (with email only)
-      const userFromDB = await User.findOne({ email }).select("-password");
+      let userFromDB = await User.findOne({ email }).select("-password");
       if (!userFromDB) {
         // Block any new user-authentication requests
         /*
@@ -1553,12 +1581,40 @@ export const emailOTPAuth = asyncHandler(
         }
 
         // Create a new user
-        await User.create({
+        userFromDB = await User.create({
           projectId,
           username: undefined,
           email,
           password: undefined,
         });
+      }
+
+      // Before creating a new session => Handle it
+      const modelResponse = await Session.handleNewSession(
+        userFromDB._id,
+        projectId!
+      );
+      if (!modelResponse.success) {
+        // Send a warning email to the user
+        const userSessionLimitExceededEmail =
+          modelResponse.project.config.emailTemplates
+            ?.userSessionLimitExceeded ||
+          emailService.userSessionLimitExceeded(
+            modelResponse.project.projectName
+          );
+        await emailService.send(
+          userFromDB.email,
+          "Session Limit Exceeded",
+          userSessionLimitExceededEmail
+        );
+        
+
+        // Throw error
+        throw new ApiError(
+          responseType.API_LIMIT_EXCEEDED.code,
+          responseType.API_LIMIT_EXCEEDED.type,
+          "User Session Limit has exceeded. Log out from the existing sessions to create a new one."
+        );
       }
 
       // Get the user from the database

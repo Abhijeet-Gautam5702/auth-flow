@@ -15,7 +15,6 @@ export class ProjectLimit {
   public userCount: number;
   public maxUsers: number = 100;
   public userActivityThreshold: number = 90; // Accounts inactive for 3 months will be deleted
-  private maxUserSessions: number = 5;
 
 
   private constructor(
@@ -242,7 +241,7 @@ export class ProjectLimit {
       this.userCount +=1;
 
       // If the userCount exceed the maxLimit => Send e-mail to the admin
-      if (this.userCount >= this.maxUsers) {
+      if (this.userCount == this.maxUsers) {
         const project = this.project;
         const projectAdmin = this.admin;
 

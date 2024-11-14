@@ -106,7 +106,7 @@ SessionSchema.statics.handleNewSession = async function (
     const project = await Project.findById(projectId);
     const userSessionsLimit = project?.config.security?.userSessionLimit;
 
-    if (sessionCount >= userSessionsLimit!) {
+    if (sessionCount > userSessionsLimit!) {
       logger(
         responseType.DATABASE_ERROR.type,
         `User-Sessions Limit for the user (as defined for the project) has exceeded. Cannot add another user-session.`
