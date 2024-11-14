@@ -3,9 +3,6 @@
 import mongoose, { Model, Schema, Document, Types } from "mongoose";
 
 // Mongoose: Base interface for User-document
-/*
-  NOTE: export interface IUser extends Document{ // properties } could also work, but better to separate the types
-*/
 export interface IUserBase {
   projectId: mongoose.Schema.Types.ObjectId;
   username: string;
@@ -20,25 +17,18 @@ export interface IUserBase {
   updatedAt: Date;
 }
 
-// Mongoose: Interface for User-document methods
-/* 
-    Note: Not defining the interface for document-methods, typescript will not recognize mongoose methods and throw errors
-*/
+// Mongoose: Interface for instance methods on user documents
 export interface IUserMethods {
   validatePassword(password: string): Promise<boolean>;
 }
 
-// Mongoose: Combined interface for defining the user-document type
-/* 
-    Note: This says that a mongoose user-document will have this structure 
-*/
-export interface IUser
-  extends IUserBase,
-    IUserMethods,
-    Document<Types.ObjectId> {}
+// Mongoose: Interface for static methods on user documents
+export interface IUserStaticMethods {}
 
-// Mongoose: User model type
-/*
-    NOTE: This defines the shape of the static methods (model level operations)
-*/
-export type IUserModel = Model<IUser, {}, IUserMethods>;
+// Mongoose: Combined interface for a User Document
+export interface IUser extends IUserBase, Document<Types.ObjectId> {}
+
+// Mongoose: Type for model methods on User Model
+export interface IUserModel
+  extends Model<IUser, {}, IUserMethods>,
+    IUserStaticMethods {}

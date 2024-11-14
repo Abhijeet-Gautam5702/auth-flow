@@ -54,11 +54,13 @@ export interface IProjectBase {
 // Mongoose: Interface for instance methods on project documents
 export interface IProjectMethods {}
 
+// Mongoose: Interface for static methods on project documents
+export interface IProjectStaticMethods {}
+
 // Mongoose: Combined interface for a Project Document
-export interface IProject
-  extends IProjectBase,
-    IProjectMethods,
-    Document<Types.ObjectId> {}
+export interface IProject extends IProjectBase, Document<Types.ObjectId> {}
 
 // Mongoose: Type for model methods on Project Model
-export type IProjectModel = Model<IProject, {}, IProjectMethods>;
+export interface IProjectModel
+  extends Model<IProject, {}, IProjectMethods>,
+    IProjectStaticMethods {}
