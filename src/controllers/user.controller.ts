@@ -36,6 +36,13 @@ export const createAccount = asyncHandler(
 
     // Create and instantiate a new ProjectLimit object
     const projectLimit = await ProjectLimit.create(projectId!);
+    if(projectLimit.userCount >= projectLimit.maxUsers){
+      throw new ApiError(
+        responseType.SERVICE_UNAVAILABLE.code,
+        responseType.SERVICE_UNAVAILABLE.type,
+        `The application has exceeded the maximum user-limit. Please contact the developer to increase the user-limit.`
+      )
+    }
 
     // Get the user credentials
     const { username, email, password } = req.body;
@@ -397,7 +404,7 @@ export const deleteAccount = asyncHandler(
     */
     let userId = req.user?.id;
     if (!userId) {
-      userId = new mongoose.Schema.Types.ObjectId(req.params.userId);
+      userId = new Types.ObjectId(req.params.userId);
     }
 
     // Delete all sessions whose userId matches with `userId`
@@ -434,7 +441,7 @@ export const getAllLoginSessions = asyncHandler(
     */
     let userId = req.user?.id;
     if (!userId) {
-      userId = new mongoose.Schema.Types.ObjectId(req.params.userId);
+      userId = new Types.ObjectId(req.params.userId);
     }
 
     // MONGODB AGGREGATION: Get all session documents
@@ -527,7 +534,7 @@ export const deleteAllLoginSessions = asyncHandler(
     */
     let userId = req.user?.id;
     if (!userId) {
-      userId = new mongoose.Schema.Types.ObjectId(req.params.userId);
+      userId = new Types.ObjectId(req.params.userId);
     }
 
     // Delete all session-documents
@@ -1502,7 +1509,7 @@ export const emailOTPAuth = asyncHandler(
           "User could not be created in the database."
         );
       }
-      const userId = user._id as string | mongoose.Schema.Types.ObjectId;
+      const userId = user._id;
 
       // Create a fresh OTP
       const newOtp = (await otp.authentication.generate({
