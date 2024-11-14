@@ -16,6 +16,8 @@ export interface IUserBase {
   verificationTokenExpiry?: Date;
   token?: string;
   tokenExpiry?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // Mongoose: Interface for User-document methods
