@@ -453,7 +453,7 @@ export class Email {
                         <!-- Header -->
                         <tr>
                             <td class="email-header">
-                                <h1 class="header-title">⚠️ User Limit Reached</h1>
+                                <h1 class="header-title">⚠️ Limit Reached</h1>
                             </td>
                         </tr>
 
@@ -483,7 +483,7 @@ export class Email {
                                     <span class="note-heading">IMPORTANT:</span> If no action is taken, new user registrations will be blocked until the limit is resolved.
                                 </p>
                                     `
-                                    : null
+                                    : ``
                                 }
                             </td>
                         </tr>
