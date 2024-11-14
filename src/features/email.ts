@@ -8,6 +8,7 @@ import {
 } from "../constants";
 import { ApiError } from "../utils/custom-api-error";
 import { logger } from "../utils/logger";
+import { Types } from "mongoose";
 
 export class Email {
   private resend = new Resend(env.secret.resendApiKey);
@@ -257,9 +258,9 @@ export class Email {
   private _helperWarningEmail = (
     title: string,
     message: string,
-    buttonText: string,
-    link: string,
-    project: {
+    buttonText?: string,
+    link?: string,
+    project?: {
       id: string;
       name: string;
     }
@@ -463,6 +464,9 @@ export class Email {
                                     ${message}
                                 </p>
 
+                                ${
+                                  buttonText && link
+                                    ? `
                                 <!-- Button -->
                                 <table class="button-wrapper" role="presentation">
                                     <tr>
@@ -478,6 +482,9 @@ export class Email {
                                 <p class="note-section">
                                     <span class="note-heading">IMPORTANT:</span> If no action is taken, new user registrations will be blocked until the limit is resolved.
                                 </p>
+                                    `
+                                    : null
+                                }
                             </td>
                         </tr>
 
@@ -499,11 +506,7 @@ export class Email {
     `;
   };
 
-  public send = async (
-    email: string,
-    subject: string,
-    template: string
-  ) => {
+  public send = async (email: string, subject: string, template: string) => {
     const { data, error } = await this.resend.emails.send({
       from: this.organization,
       to: "abhidevelops572@gmail.com", // TODO: Change this to `userEmail` after buying a Resend plan and registering the backend domain on Resend
@@ -578,8 +581,19 @@ export class Email {
       project
     );
   };
-  
-  public userSessionLimitExceeded = () => {};
+
+  public userSessionLimitExceeded = (projectName:string) => {
+    const message = `
+        You have exceeded the number of login sessions on the app: ${projectName}. To ensure continued service and prevent any disruptions, immediate action is required.
+        <br><br>
+        You have two options to resolve this:
+        <br>
+        1. Contact the organization and increase your user session limit
+        <br>
+        2. Log out from other devices
+    `;
+    return this._helperWarningEmail("User Session Limit reached", message);
+  };
 }
 
 export const emailService = new Email();

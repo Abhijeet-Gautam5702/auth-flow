@@ -271,14 +271,4 @@ export class ProjectLimit {
       throw error;
     }
   };
-
-  // Check if the number of sessions have crossed the upper-limit and send email to the user
-  public handleExcessiveUserSessions = async (
-    userId: mongoose.Types.ObjectId | string
-  ) => {
-    // Count the updated user-sessions count
-    const userSessionCount = await Session.countDocuments({userId});
-
-    // If the user's session-count exceed the maxLimit => Send email to the user
-  };
 }
