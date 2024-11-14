@@ -1,6 +1,6 @@
 /* ------------------------------ SESSION MODEL TYPES ------------------------------------ */
 
-import mongoose, { Model,Schema,Document, Types } from "mongoose";
+import mongoose, { Model, Schema, Document, Types } from "mongoose";
 
 // Device-type enum
 export enum DeviceType {
@@ -17,7 +17,7 @@ export interface UserAgent {
 }
 
 // Mongoose: SessionBase (base interface)
-export interface ISessionBase  {
+export interface ISessionBase {
   projectId: mongoose.Schema.Types.ObjectId;
   userId: mongoose.Schema.Types.ObjectId;
   accessToken: string;
@@ -25,13 +25,32 @@ export interface ISessionBase  {
   refreshToken: string;
   refreshTokenExpiry: Date;
   details: UserAgent;
+  createdAt: Date;
+  updatedAt: Date;
 }
+
+// Mongoose: Session interface (combined)
+export interface ISession extends ISessionBase, Document<Types.ObjectId> {}
 
 // Mongoose: Session Methods (instance methods)
 export interface ISessionMethods {}
 
-// Mongoose: Session interface (combined)
-export interface ISession extends ISessionBase, ISessionMethods, Document<Types.ObjectId> {}
+// Mongoose: Session Static Methods
+export interface ISessionStaticMethods {
+  clearExpiredSessions(
+    userId: Types.ObjectId,
+    projectId: Types.ObjectId
+  ): Promise<number>;
+  handleNewSession(
+    userId: Types.ObjectId,
+    projectId: Types.ObjectId
+  ): Promise<boolean>;
+}
 
 // Mongoose: Session Model interface
-export type ISessionModel = Model<ISession, {}, ISessionMethods>;
+/*
+  NOTE: ISessionModel must extend the instance-method interface & static-method interface both
+*/
+export interface ISessionModel
+  extends Model<ISession, {}, ISessionMethods>,
+    ISessionStaticMethods {}
