@@ -80,22 +80,22 @@ UserSchema.pre("save", async function () {
 UserSchema.methods.validatePassword = async function (
   password: string
 ): Promise<boolean> {
-  if(!this.password){
+  if (!this.password) {
     throw new ApiError(
       responseType.UNSUCCESSFUL.code,
       responseType.UNSUCCESSFUL.type,
       "Ensure that correct login method is being used."
-    )
+    );
   }
   try {
-    const isPasswordCorrect = await bcrypt.compare(password,this.password);
+    const isPasswordCorrect = await bcrypt.compare(password, this.password);
     return isPasswordCorrect;
   } catch (error) {
     logger(
       responseType.DATABASE_ERROR.type,
       "The password could not be compared with the hashed password stored in database"
     );
-    
+
     throw new ApiError(
       responseType.DATABASE_ERROR.code,
       responseType.DATABASE_ERROR.type,
@@ -105,4 +105,4 @@ UserSchema.methods.validatePassword = async function (
   }
 };
 
-export const User = model<IUser>("User", UserSchema);
+export const User = model<IUser, IUserModel, {}>("User", UserSchema);
