@@ -55,8 +55,8 @@ export const validateSignupInput = (
 interface ILogValidationInput {
   page?: number;
   itemLimit?: number;
-  startDate?: Date;
-  endDate?: Date;
+  startDate?: Date | string;
+  endDate?: Date | string;
   userId?: Types.ObjectId | string;
   projectId?: Types.ObjectId | string;
   eventCode?: string;
@@ -82,7 +82,7 @@ export const validateLogInput = (input: ILogValidationInput) => {
     value: T | undefined,
     validationSchema: z.ZodType
   ): z.SafeParseReturnType<T, T> => {
-    return value !== undefined
+    return value !== "undefined" && value !== undefined
       ? validationSchema.safeParse(value)
       : { success: true, data: {} };
   };
@@ -106,11 +106,11 @@ export const validateLogInput = (input: ILogValidationInput) => {
 
   // Check date range if both dates are provided and valid
   if (
-    input.startDate &&
+    input.startDate !== "undefined" &&
     input.endDate &&
     validations.startDate.success &&
     validations.endDate.success &&
-    input.startDate >= input.endDate
+    input.startDate! >= input.endDate
   ) {
     throw new ApiError(
       responseType.VALIDATION_ERROR.code,

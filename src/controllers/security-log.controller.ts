@@ -16,7 +16,7 @@ export const getLogsByUserId = asyncHandler(
     const adminId = req.admin?.id;
 
     // Project-Validation-middleware: Validate the project
-    const projectId = req.project?.id ;
+    const projectId = req.project?.id;
 
     // User-auth-middleware: Authenticate the user
     /*
@@ -28,16 +28,28 @@ export const getLogsByUserId = asyncHandler(
       userId = req.body.userId;
     }
 
-    // Get the details from the request-body
-    const { page, itemLimit, startDate, endDate } = req.body;
+    // Get the details from the request-query parameters
+    const page =
+      req.query.page !== "undefined" ? Number(req.query.page) : undefined;
+    const itemLimit =
+      req.query.itemLimit !== "undefined"
+        ? Number(req.query.itemLimit)
+        : undefined;
+    const startDate =
+      req.query.startDate !== "undefined"
+        ? String(req.query.startDate)
+        : undefined;
+    const endDate =
+      req.query.endDate !== "undefined" ? String(req.query.endDate) : undefined;
 
-    // Validate the format of the request-body details
+    // Validate the format of the request-query parameters
     const validationResponse = validateLogInput({
-      page,
-      itemLimit,
-      startDate,
-      endDate,
+      page: Number(page),
+      itemLimit: Number(itemLimit),
+      startDate: startDate,
+      endDate: endDate,
       userId,
+      eventCode: undefined,
     });
     if (!validationResponse.success) {
       throw new ApiError(
@@ -51,15 +63,17 @@ export const getLogsByUserId = asyncHandler(
     // Get the documents from the database
     const logsFromDB = await securityLog.getLogsByUserID({
       userId,
-      page,
-      projectId:projectId!,
-      queryItemCount: itemLimit,
+      projectId: projectId!,
+      page: Number(page),
+      queryItemCount: Number(itemLimit),
       startDate,
       endDate,
     });
 
     // Create response-data
-    const user = await User.findById(userId).select("-password -token -tokenExpiry -__v -updatedAt");
+    const user = await User.findById(userId).select(
+      "-password -token -tokenExpiry -__v -updatedAt"
+    );
     if (!user) {
       throw new ApiError(
         responseType.NOT_FOUND.code,
@@ -69,7 +83,7 @@ export const getLogsByUserId = asyncHandler(
     }
     const responseData = {
       user,
-      ...logsFromDB
+      ...logsFromDB,
     };
 
     // Send response with data
@@ -95,8 +109,7 @@ export const getLogsByEventCode = asyncHandler(
     // Project-Validation-middleware: Validate the project
     const projectId = req.project?.id;
 
-    // Get the details from the request-body
-    const { page, itemLimit, startDate, endDate } = req.body;
+    // Get the event-code from the request-query
     const eventCode = req.query.eventCode as string;
     if (!eventCode) {
       throw new ApiError(
@@ -106,11 +119,25 @@ export const getLogsByEventCode = asyncHandler(
       );
     }
 
+    // Get other details from the request-query parameters
+    const page =
+      req.query.page !== "undefined" ? Number(req.query.page) : undefined;
+    const itemLimit =
+      req.query.itemLimit !== "undefined"
+        ? Number(req.query.itemLimit)
+        : undefined;
+    const startDate =
+      req.query.startDate !== "undefined"
+        ? String(req.query.startDate)
+        : undefined;
+    const endDate =
+      req.query.endDate !== "undefined" ? String(req.query.endDate) : undefined;
+
     // Validate the format of the request-body details
     const validationResponse = validateLogInput({
       eventCode,
-      page,
-      itemLimit,
+      page: Number(page),
+      itemLimit: Number(itemLimit),
       startDate,
       endDate,
       projectId,
@@ -127,8 +154,8 @@ export const getLogsByEventCode = asyncHandler(
     // Get the documents from the database
     const logsFromDB = await securityLog.getAllLogsByEvent({
       projectId: projectId!,
-      page,
-      queryItemCount: itemLimit,
+      page: Number(page),
+      queryItemCount: Number(itemLimit),
       eventCode,
       startDate,
       endDate,
@@ -167,16 +194,27 @@ export const getUserLogsByEventCode = asyncHandler(
       );
     }
 
-    // Get the query details from request-body
-    const { page, itemLimit, startDate, endDate } = req.body;
+    // Get other details from the request-query parameters
+    const page =
+      req.query.page !== "undefined" ? Number(req.query.page) : undefined;
+    const itemLimit =
+      req.query.itemLimit !== "undefined"
+        ? Number(req.query.itemLimit)
+        : undefined;
+    const startDate =
+      req.query.startDate !== "undefined"
+        ? String(req.query.startDate)
+        : undefined;
+    const endDate =
+      req.query.endDate !== "undefined" ? String(req.query.endDate) : undefined;
 
     // Validate the query details
     const validationResponse = validateLogInput({
       eventCode,
-      page,
-      itemLimit,
-      startDate,
-      endDate,
+      page: Number(page),
+      itemLimit: Number(itemLimit),
+      startDate: startDate,
+      endDate: endDate,
       projectId,
       userId,
     });
@@ -195,9 +233,9 @@ export const getUserLogsByEventCode = asyncHandler(
       userId,
       startDate,
       endDate,
-      page,
+      page: Number(page),
+      queryItemCount: Number(itemLimit),
       eventCode,
-      queryItemCount: itemLimit,
     });
 
     // Send response with data

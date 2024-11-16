@@ -17,8 +17,8 @@ type IEventInput = {
 type ILogInput = {
   userId?: string | Types.ObjectId;
   projectId: string | Types.ObjectId;
-  startDate: Date;
-  endDate: Date;
+  startDate?: Date | string;
+  endDate?: Date | string;
   page: number;
   queryItemCount: number;
   eventCode?: string;
