@@ -532,7 +532,7 @@ export const deleteLoginSessionByID = asyncHandler(
     }
 
     // Get the sessionId from the request params
-    const sessionId = req.params.sessionId as string;
+    const sessionId = req.params.sessionId;
 
     // Delete the session using its sessionId
     await Session.findByIdAndDelete(sessionId);
@@ -834,7 +834,7 @@ export const resetPassword = asyncHandler(
       // Send email to the user
       const emailResponse = await emailService.send(
         userFromDB.email,
-        "Verify your AuthWave Account",
+        "Password Reset request for your account",
         resetPasswordEmail
       );
 
@@ -1163,18 +1163,18 @@ export const magicURLAuth = asyncHandler(
     // Get the request query parameters
     const { initiate, magicURLToken } = req.query;
 
+    // Get the user email from request body
+    const { email } = req.body;
+    if (!email) {
+      throw new ApiError(
+        responseType.INVALID_FORMAT.code,
+        responseType.INVALID_FORMAT.type,
+        "Email not sent correctly in the request body"
+      );
+    }
+
     // Initiate the magicURL authentication process
     if (initiate && !magicURLToken) {
-      // Get the user email from request body
-      const { email } = req.body;
-      if (!email) {
-        throw new ApiError(
-          responseType.INVALID_FORMAT.code,
-          responseType.INVALID_FORMAT.type,
-          "Email not sent correctly in the request body"
-        );
-      }
-
       // Validate the email-schema
       const isEmailValid = ZEmail.safeParse(email);
       if (!isEmailValid.success) {
@@ -1293,6 +1293,25 @@ export const magicURLAuth = asyncHandler(
           responseType.NOT_FOUND.code,
           responseType.NOT_FOUND.type,
           "User corresponding to the Magic-URL token not found in the database. Initiate the Magic-URL authentication process again."
+        );
+      }
+
+      // Check if the email provided matches the registered email
+      if (userFromDB.email !== email) {
+        // Track the number of failed login attempts
+        accountLockout.handleFailedLoginAttempt(req.ip!, userFromDB.email);
+        // Log an event
+        await securityLog.logEvent({
+          userId: userFromDB._id,
+          eventCode: EventCode.MAGIC_URL_AUTHENTICATION,
+          eventSuccess: false,
+          message: "Email provided does not match the registered email.",
+        });
+        // Throw error
+        throw new ApiError(
+          responseType.UNSUCCESSFUL.code,
+          responseType.UNSUCCESSFUL.type,
+          "The email provided does not match the registered email."
         );
       }
 
@@ -1540,19 +1559,18 @@ export const emailOTPAuth = asyncHandler(
 
     // Get the request query params
     const { initiate, otpToken } = req.query;
+    // Get the user email from request body
+    const { email } = req.body;
+    if (!email) {
+      throw new ApiError(
+        responseType.INVALID_FORMAT.code,
+        responseType.INVALID_FORMAT.type,
+        "Email not sent correctly in the request body"
+      );
+    }
 
     // Initiate the email authentication process
     if (initiate && !otpToken) {
-      // Get the user email from request body
-      const { email } = req.body;
-      if (!email) {
-        throw new ApiError(
-          responseType.INVALID_FORMAT.code,
-          responseType.INVALID_FORMAT.type,
-          "Email not sent correctly in the request body"
-        );
-      }
-
       // Validate the email-schema
       const isEmailValid = ZEmail.safeParse(email);
       if (!isEmailValid.success) {
@@ -1607,7 +1625,6 @@ export const emailOTPAuth = asyncHandler(
           "Session Limit Exceeded",
           userSessionLimitExceededEmail
         );
-        
 
         // Throw error
         throw new ApiError(
@@ -1689,6 +1706,23 @@ export const emailOTPAuth = asyncHandler(
           responseType.TOKEN_INVALID.code,
           responseType.TOKEN_INVALID.type,
           "Corresponding user not found in the database. Initiate the authentication process again."
+        );
+      }
+      if (userFromDB.email !== email) {
+        // Track the number of failed login attempts
+        accountLockout.handleFailedLoginAttempt(req.ip!, userFromDB.email);
+        // Log an event
+        await securityLog.logEvent({
+          userId: userFromDB._id,
+          eventCode: EventCode.OTP_AUTHENTICATION,
+          eventSuccess: false,
+          message: "Email provided does not match the registered email.",
+        });
+        // Throw error
+        throw new ApiError(
+          responseType.UNSUCCESSFUL.code,
+          responseType.UNSUCCESSFUL.type,
+          "The email provided does not match the registered email."
         );
       }
       if (String(decodedOTP.projectId) != String(projectFromDB._id)) {
