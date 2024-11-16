@@ -28,6 +28,15 @@ export const validateProject = asyncHandler(
       );
     }
 
+    // Validate the format of the project-Id
+    if (!Types.ObjectId.isValid(projectId)) {
+      throw new ApiError(
+        responseType.INVALID_PROJECT_CREDENTIALS.code,
+        responseType.INVALID_PROJECT_CREDENTIALS.type,
+        "Invalid Project-ID is provided."
+      );
+    }
+
     // Check if the project exists
     const projectFromDB = await Project.findById(projectId);
     if (!projectFromDB) {
@@ -42,7 +51,7 @@ export const validateProject = asyncHandler(
       throw new ApiError(
         responseType.INVALID_PROJECT_CREDENTIALS.code,
         responseType.INVALID_PROJECT_CREDENTIALS.type,
-        "Project key has been changed. Provide the new Project Key."
+        "Project-Key Mismatch. Provide the correct Project-Key."
       );
     }
 
