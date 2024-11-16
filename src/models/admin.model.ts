@@ -62,4 +62,4 @@ AdminSchema.methods.validatePassword = async function (
   }
 };
 
-export const Admin = model<IAdmin>("Admin", AdminSchema);
+export const Admin = model<IAdmin,IAdminModel>("Admin", AdminSchema);

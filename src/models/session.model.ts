@@ -31,7 +31,7 @@ const SessionSchema = new Schema<ISession, ISessionModel, ISessionMethods>(
     },
     refreshToken: {
       type: String,
-      unique: true,
+      // unique: true,
     },
     refreshTokenExpiry: {
       type: Date,
