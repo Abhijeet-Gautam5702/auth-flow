@@ -46,6 +46,8 @@ export interface ProjectConfig {
 // Mongoose: Base interface for the Project Document
 export interface IProjectBase {
   projectName: string;
+  appName: string;
+  appEmail: string;
   projectKey: string;
   config: ProjectConfig;
   owner: mongoose.Schema.Types.ObjectId;

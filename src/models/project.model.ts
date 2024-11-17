@@ -8,6 +8,14 @@ const ProjectSchema = new Schema<IProject, IProjectModel, IProjectMethods>(
       required: true,
       lowercase: true,
     },
+    appName: {
+      type: String,
+      required: true,
+    },
+    appEmail: {
+      type: String,
+      required: true,
+    },
     config: {
       loginMethods: {
         emailPassword: {
@@ -83,4 +91,4 @@ const ProjectSchema = new Schema<IProject, IProjectModel, IProjectMethods>(
   { timestamps: true, validateBeforeSave: true }
 );
 
-export const Project = model<IProject>("Project", ProjectSchema);
+export const Project = model<IProject, IProjectModel>("Project", ProjectSchema);
