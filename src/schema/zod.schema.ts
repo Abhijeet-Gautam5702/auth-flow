@@ -62,3 +62,14 @@ export const ZEventCode = z.enum(
 );
 
 export const ZObjectId = z.instanceof(mongoose.Types.ObjectId).or(z.string());
+
+/* -------------------------------------------------------------------------------------- */
+
+export const ZProjectName = z
+  .string()
+  .min(4, { message: "Project-Name must be at least 4 characters long" })
+  .max(20, { message: "Project-Name must be at most 20 characters long" })
+  .regex(/^[a-zA-Z][a-zA-Z0-9-]*$/, {
+    message:
+      "Project-Name must start with an alphabet and can only contain letters, numbers, and hyphens",
+  });

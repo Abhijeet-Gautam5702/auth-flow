@@ -9,6 +9,8 @@ import {
   getProject,
   projectOverview,
   resetEmailTemplateToDefault,
+  updateAppEmail,
+  updateAppName,
   updateEmailTemplates,
   updateLoginMethods,
   updateSecurity,
@@ -23,6 +25,8 @@ router.route("/generate-new-key").put(validateProject, createNewProjectKey);
 router.route("/:projectId").get(getProject);
 router.route("/delete/:projectId").delete(deleteProject);
 
+router.route("/update/app-name").put(validateProject, updateAppName);
+router.route("/update/app-email").put(validateProject, updateAppEmail);
 router.route("/update/login-methods").put(validateProject, updateLoginMethods);
 router.route("/update/security").put(validateProject, updateSecurity);
 router

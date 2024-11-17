@@ -20,6 +20,7 @@ import {
   EmailTemplateName,
 } from "../types/model-types/project.types";
 import { ProjectLimit } from "../features/project-limit";
+import { ZEmail, ZProjectName } from "../schema/zod.schema";
 
 // SECURED ROUTE: CREATE NEW PROJECT
 export const createProject = asyncHandler(
@@ -173,6 +174,122 @@ export const getProject = asyncHandler(async (req: IRequest, res: Response) => {
       )
     );
 });
+
+// SECURED ROUTE: UPDATE APP NAME
+export const updateAppName = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Admin-auth middleware: Authenticate the admin
+    const adminId = req.admin?.id;
+
+    // Project-validation middleware: Validate the project
+    const projectId = req.project?.id;
+
+    // Get the app-name from the request-body
+    const { appName } = req.body;
+    if (!appName) {
+      throw new ApiError(
+        responseType.INVALID_FORMAT.code,
+        responseType.INVALID_FORMAT.type,
+        "App-Name not provided in the Request-body"
+      );
+    }
+
+    // Validate the project-name
+    const isAppNameValid = ZProjectName.safeParse(appName);
+    if (!isAppNameValid.success) {
+      throw new ApiError(
+        responseType.INVALID_FORMAT.code,
+        responseType.INVALID_FORMAT.type,
+        "Invalid App-Name provided in the Request-body",
+        isAppNameValid.error.errors
+      );
+    }
+
+    // Get the project document from the database
+    const projectFromDB = await Project.findById(projectId);
+    if (!projectFromDB) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "Project with the given Project-ID not found in the database"
+      );
+    }
+
+    // Update the project document with the new app-name
+    projectFromDB.appName = appName;
+    await projectFromDB.save();
+
+    // Send response with the updated project document data
+    res
+      .status(responseType.SUCCESSFUL.code)
+      .json(
+        new ApiResponse(
+          responseType.SUCCESSFUL.code,
+          responseType.SUCCESSFUL.type,
+          "App-Name updated successfully",
+          projectFromDB
+        )
+      );
+  }
+);
+
+// SECURED ROUTE: UPDATE APP EMAIL
+export const updateAppEmail = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Admin-auth middleware: Authenticate the admin
+    const adminId = req.admin?.id;
+
+    // Project-validation middleware: Validate the project
+    const projectId = req.project?.id;
+
+    // Get the app-email from the request-body
+    const { appEmail } = req.body;
+    if (!appEmail) {
+      throw new ApiError(
+        responseType.INVALID_FORMAT.code,
+        responseType.INVALID_FORMAT.type,
+        "App-Email not provided in the Request-body"
+      );
+    }
+
+    // Validate the app-email format
+    const isAppEmailValid = ZEmail.safeParse(appEmail);
+    if (!isAppEmailValid.success) {
+      throw new ApiError(
+        responseType.INVALID_FORMAT.code,
+        responseType.INVALID_FORMAT.type,
+        "Invalid App-Email provided in the Request-body",
+        isAppEmailValid.error.errors
+      );
+    }
+
+    // Get the project document from the database
+    const projectFromDB = await Project.findById(projectId);
+    if (!projectFromDB) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "Project with the given Project-ID not found in the database"
+      );
+    }
+
+    // Update the project document with the new app-email
+    projectFromDB.appEmail = appEmail;
+    await projectFromDB.save();
+
+    // Send response with the updated project document data
+    res
+      .status(responseType.SUCCESSFUL.code)
+      .json(
+        new ApiResponse(
+          responseType.SUCCESSFUL.code,
+          responseType.SUCCESSFUL.type,
+          "App-Email updated successfully",
+          projectFromDB
+        )
+      );
+  }
+);
 
 // SECURED ROUTE: UPDATE PROJECT LOGIN-METHODS SETTINGS
 export const updateLoginMethods = asyncHandler(
@@ -587,9 +704,7 @@ export const clearInactiveUserAccounts = asyncHandler(
     const projectId = req.project?.id;
 
     // Clear the inactive accounts
-    const projectLimit = await ProjectLimit.create(
-      projectId!
-    );
+    const projectLimit = await ProjectLimit.create(projectId!);
     const deletedAccountCount = await projectLimit.clearInactiveUserAccounts();
 
     // Send response
