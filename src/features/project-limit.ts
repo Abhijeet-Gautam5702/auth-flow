@@ -5,17 +5,17 @@ import { responseType } from "../constants";
 import { User } from "../models/user.model";
 import { Session } from "../models/session.model";
 import { Log } from "../models/security-log.model";
-import { emailService } from "./email";
+import { Email as EmailService } from "./email";
 import { Admin } from "../models/admin.model";
 import { IAdmin, IProject } from "../types/types";
 
 export class ProjectLimit {
-  private project: IProject;
-  private admin: IAdmin;
+  private readonly project: IProject;
+  private readonly admin: IAdmin;
   public userCount: number;
-  public maxUsers: number = 100;
-  public userActivityThreshold: number = 90; // Accounts inactive for 3 months will be deleted
-
+  public readonly maxUsers: number = 100;
+  public readonly userActivityThreshold: number = 90; // Accounts inactive for 3 months will be deleted
+  private readonly emailService: EmailService;
 
   private constructor(
     project: IProject,
@@ -27,6 +27,7 @@ export class ProjectLimit {
     this.admin = admin;
     this.maxUsers = maxUsers;
     this.userCount = userCount;
+    this.emailService = new EmailService(this.project);
   }
 
   /* ------------------------------ STATIC METHODS ------------------------------------- */
@@ -238,7 +239,7 @@ export class ProjectLimit {
   public handleNewUserAccount = async () => {
     try {
       // Increment the user-count
-      this.userCount +=1;
+      this.userCount += 1;
 
       // If the userCount exceed the maxLimit => Send e-mail to the admin
       if (this.userCount == this.maxUsers) {
@@ -250,13 +251,10 @@ export class ProjectLimit {
           project?.config.emailTemplates?.userLimitExceeded;
         const userLimitExceededEmail =
           customEmailTemplate ||
-          emailService.userLimitExceeded({
-            id: String(this.project._id),
-            name: project.projectName,
-          });
+          this.emailService.userLimitExceeded();
 
         // Send email
-        await emailService.send(
+        await this.emailService.send(
           projectAdmin?.email!,
           `⚠️ User Limit Reached`,
           userLimitExceededEmail

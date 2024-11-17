@@ -25,7 +25,7 @@ import mongoose, { Types } from "mongoose";
 import { accountLockout } from "../features/account-lockout";
 import { securityLog } from "../features/security-log";
 import { Log } from "../models/security-log.model";
-import { emailService } from "../features/email";
+import { Email as EmailService } from "../features/email";
 import { ProjectLimit } from "../features/project-limit";
 
 // CREATE USER ACCOUNT
@@ -169,6 +169,10 @@ export const createLoginSession = asyncHandler(
   async (req: IRequest, res: Response) => {
     // Validate the project
     const projectId = req.project?.id;
+    const projectFromDB = await Project.findById(projectId);
+
+    // Create an email-service instance
+    const emailService = new EmailService(projectFromDB!);
 
     // Get the user credentials
     const { username, email, password } = req.body;
@@ -232,7 +236,6 @@ export const createLoginSession = asyncHandler(
       const userSessionLimitExceededEmail =
         modelResponse.project.config.emailTemplates?.userSessionLimitExceeded ||
         emailService.userSessionLimitExceeded(
-          modelResponse.project.projectName
         );
       await emailService.send(
         userFromDB.email,
@@ -588,6 +591,13 @@ export const deleteAllLoginSessions = asyncHandler(
 // SECURED ROUTE: VERIFY THE USER EMAIL
 export const verifyEmail = asyncHandler(
   async (req: IRequest, res: Response) => {
+    // Project-Validation middleware: Validate the project
+    const projectId = req.project?.id;
+    const projectFromDB = await Project.findById(projectId);
+
+    // Create an email-service instance
+    const emailService = new EmailService(projectFromDB!);
+
     // User-auth middleware: Authenticate the user
     const userId = req.user?.id;
 
@@ -779,7 +789,7 @@ export const resetPassword = asyncHandler(
   async (req: IRequest, res: Response) => {
     // Project-Validation middleware: Validate the project
     const projectId = req.project?.id;
-    const projectFromDB: IProject | null = await Project.findById(projectId);
+    const projectFromDB = await Project.findById(projectId);
     if (!projectFromDB) {
       throw new ApiError(
         responseType.NOT_FOUND.code,
@@ -787,6 +797,9 @@ export const resetPassword = asyncHandler(
         "Corresponding project not found in the database"
       );
     }
+
+    // Create an email-service instance
+    const emailService = new EmailService(projectFromDB);
 
     // User-auth middleware: Authenticate the user
     const userId = req.user?.id;
@@ -1137,6 +1150,9 @@ export const magicURLAuth = asyncHandler(
     const projectId = req.project?.id;
     const projectFromDB = await Project.findById(projectId);
 
+    // Create an email-service instance
+    const emailService = new EmailService(projectFromDB!);
+
     // Block any new user-authentication requests
     /*
       NOTE: 
@@ -1325,9 +1341,7 @@ export const magicURLAuth = asyncHandler(
         const userSessionLimitExceededEmail =
           modelResponse.project.config.emailTemplates
             ?.userSessionLimitExceeded ||
-          emailService.userSessionLimitExceeded(
-            modelResponse.project.projectName
-          );
+          emailService.userSessionLimitExceeded();
         await emailService.send(
           userFromDB.email,
           "Session Limit Exceeded",
@@ -1545,6 +1559,9 @@ export const emailOTPAuth = asyncHandler(
     const projectId = req.project?.id;
     const projectFromDB = await Project.findById(projectId);
 
+    // Create an email-service instance
+    const emailService = new EmailService(projectFromDB!);
+
     // Create a new ProjectLimit instance
     const projectLimit = await ProjectLimit.create(projectId!);
 
@@ -1617,9 +1634,7 @@ export const emailOTPAuth = asyncHandler(
         const userSessionLimitExceededEmail =
           modelResponse.project.config.emailTemplates
             ?.userSessionLimitExceeded ||
-          emailService.userSessionLimitExceeded(
-            modelResponse.project.projectName
-          );
+          emailService.userSessionLimitExceeded();
         await emailService.send(
           userFromDB.email,
           "Session Limit Exceeded",

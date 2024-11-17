@@ -8,11 +8,16 @@ import {
 } from "../constants";
 import { ApiError } from "../utils/custom-api-error";
 import { logger } from "../utils/logger";
-import { Types } from "mongoose";
+import { IProject } from "../types/types";
 
 export class Email {
-  private resend = new Resend(env.secret.resendApiKey);
-  private organization = `${ORG_NAME} <${ORG_EMAIL}>`;
+  private readonly resend = new Resend(env.secret.resendApiKey);
+  private readonly organization = `${ORG_NAME} <${ORG_EMAIL}>`; // TODO: Remove after buying a Resend plan
+  private readonly project: IProject;
+
+  constructor(project: IProject) {
+    this.project = project;
+  }
 
   private _helperEmail = (
     title: string,
@@ -223,9 +228,19 @@ export class Email {
                                 <table class="button-wrapper" role="presentation">
                                     <tr>
                                         <td>
-                                            <a href="${link}" class="action-button">
-                                                ${buttonText}
-                                            </a>
+                                            ${
+                                              link
+                                                ? `
+                                                    <a href="${link}" class="action-button">
+                                                    ${buttonText}
+                                                    </a>
+                                                `
+                                                : `
+                                                    <p class="action-button">
+                                                    ${buttonText}
+                                                    </p>
+                                                `
+                                            }
                                         </td>
                                     </tr>
                                 </table>
@@ -259,11 +274,7 @@ export class Email {
     title: string,
     message: string,
     buttonText?: string,
-    link?: string,
-    project?: {
-      id: string;
-      name: string;
-    }
+    link?: string
   ) => {
     return `
     <!DOCTYPE html>
@@ -506,10 +517,14 @@ export class Email {
     `;
   };
 
-  public send = async (email: string, subject: string, template: string) => {
+  public send = async (
+    recipientEmail: string,
+    subject: string,
+    template: string
+  ) => {
     const { data, error } = await this.resend.emails.send({
-      from: this.organization,
-      to: "abhidevelops572@gmail.com", // TODO: Change this to `userEmail` after buying a Resend plan and registering the backend domain on Resend
+      from: this.organization, // TODO: Change this to  `this.project.appEmail` after buying a Resend plan and refistering the backend domain on Resend
+      to: "abhidevelops572@gmail.com", // TODO: Change this to `recipientEmail` after buying a Resend plan and registering the backend domain on Resend
       subject: subject,
       html: template,
     });
@@ -532,68 +547,70 @@ export class Email {
 
   public userVerification = (link: string) => {
     return this._helperEmail(
-      "Verify your AuthWave account",
-      "Thank you for creating an account with AuthWave! To ensure the security of your account and access all features, please verify your email address by clicking the button below.",
+      "Verify your account",
+      `Thank you for creating an account with our platform! To ensure the security of your account and access all features, please verify your email address by clicking the button below.`,
       "Verify your email",
       link
     );
   };
+
   public resetPassword = (link: string) => {
     return this._helperEmail(
-      "Password Reset Request for AuthWave Account",
-      "We received a request to reset your password for your AuthWave account. To proceed with the password reset, please click the button below. (If you didn't request this change, you can safely ignore this email.)",
+      "Password Reset Request for your account",
+      `We received a request to reset your password for your ${this.project.appName} account. To proceed with the password reset, please click the button below. (If you didn't request this change, you can safely ignore this email.)`,
       "Reset Password",
       link
     );
   };
+
   public magicURLonEmail = (link: string) => {
     return this._helperEmail(
-      "One-Click Login Link for AuthWave Authentication",
-      "You've requested to sign in to your AuthWave account via Magic-URL. Click the button below to securely log in with one click.",
+      "One-Click Login Link for authentication",
+      `You've requested to sign in to your ${this.project.appName} account via Magic-URL. Click the button below to securely log in with one click.`,
       "Click to Login",
       link
     );
   };
+
   public OTPonEmail = (password: string) => {
     return this._helperEmail(
-      "One-Time Password for AuthWave Authentication",
-      "Here's your one-time password (OTP) to access your AuthWave account. Enter this code to proceed with your authentication.",
+      "One-Time Password for authentication",
+      `Here's your one-time password (OTP) to access your ${this.project.appName} account. Enter this code to proceed with your authentication.`,
       password
     );
   };
 
-  public userLimitExceeded = (project: { id: string; name: string }) => {
+  public userLimitExceeded = () => {
     const message = `
-        Your project "${project.name}" (ID: ${project.id}) has reached its maximum user limit on AuthWave. To ensure continued service and prevent any disruptions, immediate action is required.
+        Your application "${this.project.appName}" (Project-ID: ${this.project.id}) has reached its maximum user limit on AuthWave. To ensure continued service and prevent any disruptions, immediate action is required.
         <br><br>
-        You have two options to resolve this:
+        You have two options to resolve this. Head to the AuthWave developer console and:
         <br>
-        1. Increase your user limit through the developer console
+        1. Increase your user limit.
         <br>
-        2. Remove inactive user accounts to free up space
+        2. Remove inactive user accounts to free up space.
     `;
 
     return this._helperWarningEmail(
       "User Limit Reached",
       message,
       "Go to console",
-      `${frontendDomain}/console/admin?id=adminId`, // TODO: Replace this with the URL to the developer-console after the AuthWave website is live.
-      project
+      `${frontendDomain}/console/admin?id=adminId` // TODO: Replace this with the URL to the developer-console after the AuthWave website is live.
     );
   };
 
-  public userSessionLimitExceeded = (projectName:string) => {
+  public userSessionLimitExceeded = () => {
     const message = `
-        You have exceeded the number of login sessions on the app: ${projectName}. To ensure continued service and prevent any disruptions, immediate action is required.
+        You have exceeded the number of login sessions on the app: ${this.project.appName}. To ensure continued service and prevent any disruptions, immediate action is required.
         <br><br>
         You have two options to resolve this:
         <br>
-        1. Contact the organization and increase your user session limit
+        1. Contact the organization and increase the user session limit on their application
         <br>
-        2. Log out from other devices
+        2. Log out from other devices and then try to login again
     `;
     return this._helperWarningEmail("User Session Limit reached", message);
   };
 }
 
-export const emailService = new Email();
+// export const emailService = new Email();
