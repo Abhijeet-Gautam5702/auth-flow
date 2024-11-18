@@ -1,6 +1,6 @@
 /* ------------------------------ SESSION MODEL TYPES ------------------------------------ */
 
-import mongoose, { Model, Schema, Document, Types } from "mongoose";
+import mongoose, { Model, Document, Types } from "mongoose";
 import { IProject } from "./project.types";
 
 // Device-type enum

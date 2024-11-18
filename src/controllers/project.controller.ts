@@ -1,6 +1,6 @@
 import { NextFunction, Request, response, Response } from "express";
 import { asyncHandler } from "../utils/async-handler";
-import { IProject, IRequest, ProjectConfig } from "../types/types";
+import { IRequest } from "../types/types";
 import { ApiError } from "../utils/custom-api-error";
 import { env, responseType } from "../constants";
 import { Project } from "../models/project.model";
@@ -11,7 +11,6 @@ import {
   validateLoginMethods,
   validateSecurityObject,
 } from "../utils/project-config-validator";
-import mongoose from "mongoose";
 import { User } from "../models/user.model";
 import { Session } from "../models/session.model";
 import { Log } from "../models/security-log.model";

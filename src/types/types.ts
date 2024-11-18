@@ -42,7 +42,7 @@ export {
   EventCode,
 } from "./model-types/security-log.types";
 
-/* -------------------------------------------------------------------------- */
+/* -------------------- OTHER TYPES -------------------------------------- */
 
 // Fn: Validation of Signup Inputs
 export interface IValidateSignupInput {

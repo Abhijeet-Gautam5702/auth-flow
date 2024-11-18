@@ -5,8 +5,7 @@ import { User } from "../models/user.model";
 import { ApiError } from "../utils/custom-api-error";
 import { responseType } from "../constants";
 import { Session } from "../models/session.model";
-import { IRequest, ISession, IUser } from "../types/types";
-import mongoose, { Types } from "mongoose";
+import { IRequest} from "../types/types";
 
 export const authenticateUser = asyncHandler(
   async (req: IRequest, res: Response, next: NextFunction) => {

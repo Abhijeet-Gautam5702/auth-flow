@@ -1,6 +1,6 @@
 /* ------------------------------ ADMIN MODEL TYPES ------------------------------------ */
 
-import { Model, Document, Schema, Types } from "mongoose";
+import { Model, Document, Types } from "mongoose";
 
 export interface IAdminBase {
   email: string;

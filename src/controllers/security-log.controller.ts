@@ -3,7 +3,6 @@ import { IRequest } from "../types/api.types";
 import { asyncHandler } from "../utils/async-handler";
 import { validateLogInput } from "../schema/validation";
 import { securityLog } from "../features/security-log";
-import mongoose from "mongoose";
 import { responseType } from "../constants";
 import { ApiResponse } from "../utils/custom-api-response";
 import { ApiError } from "../utils/custom-api-error";

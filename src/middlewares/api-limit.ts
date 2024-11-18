@@ -1,12 +1,7 @@
 // Middleware to limit the API-requests from a particular IP-address
 import rateLimit from "express-rate-limit";
 import { asyncHandler } from "../utils/async-handler";
-import {
-  IClientIP,
-  IClientUID,
-  IFailedAttemptInfo,
-  IRequest,
-} from "../types/types";
+import { IRequest } from "../types/types";
 import { NextFunction, Response } from "express";
 import { ApiError } from "../utils/custom-api-error";
 import { responseType } from "../constants";
@@ -33,4 +28,3 @@ class ApiRateLimiter {
 }
 
 export const apiRateLimiter = new ApiRateLimiter();
-

@@ -6,7 +6,6 @@ import { User } from "../models/user.model";
 import { Session } from "../models/session.model";
 import { Log } from "../models/security-log.model";
 import { Email as EmailService } from "./email";
-import { Admin } from "../models/admin.model";
 import { IAdmin, IProject } from "../types/types";
 
 export class ProjectLimit {

@@ -7,7 +7,7 @@ import { ApiError } from "../utils/custom-api-error";
 import { responseType } from "../constants";
 import { Project } from "../models/project.model";
 import jwt from "jsonwebtoken";
-import mongoose, { Types } from "mongoose";
+import { Types } from "mongoose";
 
 export const validateProject = asyncHandler(
   async (req: IRequest, res: Response, next: NextFunction) => {

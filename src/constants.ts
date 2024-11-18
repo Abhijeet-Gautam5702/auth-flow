@@ -1,6 +1,5 @@
 import "dotenv/config";
 import { CookieOptions } from "express";
-import { EmailTemplateConfig } from "./types/types";
 
 // Message codes for the API-responses
 export const responseType = {

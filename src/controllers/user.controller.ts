@@ -4,9 +4,6 @@ import { ApiError } from "../utils/custom-api-error";
 import {
   cookieOptions,
   env,
-  frontendDomain,
-  ORG_EMAIL,
-  ORG_NAME,
   responseType,
 } from "../constants";
 import { validateSignupInput } from "../schema/validation";
@@ -21,7 +18,7 @@ import { Project } from "../models/project.model";
 import jwt from "jsonwebtoken";
 import { ZEmail, ZPassword } from "../schema/zod.schema";
 import { otp } from "../features/otp";
-import mongoose, { Types } from "mongoose";
+import { Types } from "mongoose";
 import { accountLockout } from "../features/account-lockout";
 import { securityLog } from "../features/security-log";
 import { Log } from "../models/security-log.model";

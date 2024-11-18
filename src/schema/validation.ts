@@ -3,17 +3,16 @@ import {
   ZEndDate,
   ZEventCode,
   ZItemLimit,
-  ZObjectId,
   ZPage,
   ZPassword,
   ZStartDate,
   ZUsername,
 } from "./zod.schema";
-import { EventCode, ISignupInput, IValidateSignupInput } from "../types/types";
-import mongoose, { Types } from "mongoose";
+import { ISignupInput, IValidateSignupInput } from "../types/types";
+import { Types } from "mongoose";
 import { ApiError } from "../utils/custom-api-error";
 import { responseType } from "../constants";
-import { z, ZodError } from "zod";
+import { z } from "zod";
 
 export const validateSignupInput = (
   input: ISignupInput

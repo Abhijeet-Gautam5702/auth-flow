@@ -1,6 +1,6 @@
 /* --------------------------- SECURITY-LOG MODEL TYPES ------------------------------------ */
 
-import mongoose, { Model, Document, Schema, Types } from "mongoose";
+import mongoose, { Model, Document, Types } from "mongoose";
 
 export enum EventCode {
   PASSWORD_LOGIN = "PASSWORD_LOGIN",
