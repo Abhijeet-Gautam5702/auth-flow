@@ -612,5 +612,3 @@ export class Email {
     return this._helperWarningEmail("User Session Limit reached", message);
   };
 }
-
-// export const emailService = new Email();

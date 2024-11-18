@@ -235,8 +235,7 @@ export const createLoginSession = asyncHandler(
       // Send a warning email to the user
       const userSessionLimitExceededEmail =
         modelResponse.project.config.emailTemplates?.userSessionLimitExceeded ||
-        emailService.userSessionLimitExceeded(
-        );
+        emailService.userSessionLimitExceeded();
       await emailService.send(
         userFromDB.email,
         "Session Limit Exceeded",
@@ -652,18 +651,26 @@ export const verifyEmail = asyncHandler(
       await userFromDB.save();
 
       // Find project-document & extract the email-template
-      const projectFromDB: IProject | null = await Project.findById(
-        userFromDB.projectId
-      );
+      const projectFromDB = await Project.findById(userFromDB.projectId);
       const customEmailTemplate =
         projectFromDB?.config.emailTemplates?.userVerification;
+
+      // Get the base link from the request body
+      const baseLink = req.body.baseLink;
+      if (!baseLink) {
+        throw new ApiError(
+          responseType.NOT_FOUND.code,
+          responseType.NOT_FOUND.type,
+          "Base Link not found in the request body."
+        );
+      }
 
       // Generate an email to be sent to the user-inbox (either the custom one or default)
       const userVerificationEmail =
         customEmailTemplate ||
         emailService.userVerification(
-          `${frontendDomain}/user/verify?token=${verificationToken}`
-        ); // TODO: The frontend website link will be taken from the client (not user) OR the Authwave frontend website link can be used
+          `${baseLink}?token=${verificationToken}`
+        ); // NOTE: This verification link is for the frontend page where the user will be redirected when the link in the email is clicked. The developer/admin has to setup a mechanism that as soon as the user lands this page, a backend request is made to the Auth Wave server endpoint for verification-completion.
 
       // Send email to the user
       const emailResponse = await emailService.send(
@@ -837,12 +844,22 @@ export const resetPassword = asyncHandler(
       userFromDB.tokenExpiry = resetPasswordTokenExpiry;
       await userFromDB.save();
 
+      // Get the base-reset-password link from the request body
+      const baseLink = req.body.baseLink;
+      if (!baseLink) {
+        throw new ApiError(
+          responseType.NOT_FOUND.code,
+          responseType.NOT_FOUND.type,
+          "Base Link not found in the request body."
+        );
+      }
+
       // Generate the email to be sent to the user inbox (either default or custom)
       const resetPasswordEmail =
         projectFromDB.config.emailTemplates?.resetPassword ||
         emailService.resetPassword(
-          `${frontendDomain}/user/reset-password?token=${resetPasswordToken}`
-        ); // TODO: The frontend website link will be taken from the client (not user) OR the Authwave frontend website link can be used
+          `${baseLink}?token=${resetPasswordToken}`
+        ); // NOTE: This reset-password link is for the frontend page where the user will be redirected when the link in the email is clicked. The developer/admin has to setup a mechanism that as soon as the user lands this page, a backend request is made to the Auth Wave server endpoint for password-reset completion.
 
       // Send email to the user
       const emailResponse = await emailService.send(
@@ -1250,12 +1267,22 @@ export const magicURLAuth = asyncHandler(
       createdUser.tokenExpiry = magicURLTokenExpiry;
       await createdUser.save();
 
+      // Get the base-verification link from the request body
+      const baseLink = req.body.baseLink;
+      if (!baseLink) {
+        throw new ApiError(
+          responseType.NOT_FOUND.code,
+          responseType.NOT_FOUND.type,
+          "Base-Verification Link not found in the request body."
+        );
+      }
+
       // Generate the email to be sent to the user inbox (either default or custom)
       const magicURLVerificationEmail =
         projectFromDB.config.emailTemplates?.magicURLonEmail ||
         emailService.magicURLonEmail(
-          `${frontendDomain}/user/auth/magic-url?magicURLToken=${magicURLToken}`
-        ); // TODO: The frontend website link will be taken from the client (not user) OR the Authwave frontend website link can be used
+          `${baseLink}?token=${magicURLToken}`
+        );
 
       // Send email to the user
       const emailResponse = await emailService.send(
