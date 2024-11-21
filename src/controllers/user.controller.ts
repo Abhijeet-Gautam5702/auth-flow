@@ -1,11 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { asyncHandler } from "../utils/async-handler";
 import { ApiError } from "../utils/custom-api-error";
-import {
-  cookieOptions,
-  env,
-  responseType,
-} from "../constants";
+import { cookieOptions, env, responseType } from "../constants";
 import { validateSignupInput } from "../schema/validation";
 import { User } from "../models/user.model";
 import { ApiResponse } from "../utils/custom-api-response";
@@ -647,7 +643,7 @@ export const verifyEmail = asyncHandler(
       userFromDB.tokenExpiry = verificationTokenExpiry;
       await userFromDB.save();
 
-      // Find project-document & extract the email-template
+      // Extract the custom email template set by the admin
       const projectFromDB = await Project.findById(userFromDB.projectId);
       const customEmailTemplate =
         projectFromDB?.config.emailTemplates?.userVerification;
@@ -663,11 +659,16 @@ export const verifyEmail = asyncHandler(
       }
 
       // Generate an email to be sent to the user-inbox (either the custom one or default)
+      /*
+        NOTE: This verification link is for the frontend page where the user will be redirected when the link in the email is clicked. The developer/admin has to setup a mechanism that as soon as the user lands this page, a backend request is made to the Auth Wave server endpoint for verification-completion.
+      */
       const userVerificationEmail =
-        customEmailTemplate ||
-        emailService.userVerification(
-          `${baseLink}?token=${verificationToken}`
-        ); // NOTE: This verification link is for the frontend page where the user will be redirected when the link in the email is clicked. The developer/admin has to setup a mechanism that as soon as the user lands this page, a backend request is made to the Auth Wave server endpoint for verification-completion.
+        (customEmailTemplate &&
+          emailService.createEmailFromCustomTemplate(
+            customEmailTemplate,
+            `${baseLink}?token=${verificationToken}`
+          )) ||
+        emailService.userVerification(`${baseLink}?token=${verificationToken}`); //
 
       // Send email to the user
       const emailResponse = await emailService.send(
@@ -841,6 +842,10 @@ export const resetPassword = asyncHandler(
       userFromDB.tokenExpiry = resetPasswordTokenExpiry;
       await userFromDB.save();
 
+      // Extract the custom email template set by the admin
+      const customEmailTemplate =
+        projectFromDB.config.emailTemplates?.resetPassword;
+
       // Get the base-reset-password link from the request body
       const baseLink = req.body.baseLink;
       if (!baseLink) {
@@ -852,11 +857,16 @@ export const resetPassword = asyncHandler(
       }
 
       // Generate the email to be sent to the user inbox (either default or custom)
+      /*
+        NOTE: This reset-password link is for the frontend page where the user will be redirected when the link in the email is clicked. The developer/admin has to setup a mechanism that as soon as the user lands this page, a backend request is made to the Auth Wave server endpoint for password-reset completion.
+      */
       const resetPasswordEmail =
-        projectFromDB.config.emailTemplates?.resetPassword ||
-        emailService.resetPassword(
-          `${baseLink}?token=${resetPasswordToken}`
-        ); // NOTE: This reset-password link is for the frontend page where the user will be redirected when the link in the email is clicked. The developer/admin has to setup a mechanism that as soon as the user lands this page, a backend request is made to the Auth Wave server endpoint for password-reset completion.
+        (customEmailTemplate &&
+          emailService.createEmailFromCustomTemplate(
+            customEmailTemplate,
+            `${baseLink}?token=${resetPasswordToken}`
+          )) ||
+        emailService.resetPassword(`${baseLink}?token=${resetPasswordToken}`);
 
       // Send email to the user
       const emailResponse = await emailService.send(
@@ -1264,6 +1274,10 @@ export const magicURLAuth = asyncHandler(
       createdUser.tokenExpiry = magicURLTokenExpiry;
       await createdUser.save();
 
+      // Extract the custom email template set by the admin
+      const customEmailTemplate =
+        projectFromDB.config.emailTemplates?.magicURLonEmail;
+
       // Get the base-verification link from the request body
       const baseLink = req.body.baseLink;
       if (!baseLink) {
@@ -1276,10 +1290,12 @@ export const magicURLAuth = asyncHandler(
 
       // Generate the email to be sent to the user inbox (either default or custom)
       const magicURLVerificationEmail =
-        projectFromDB.config.emailTemplates?.magicURLonEmail ||
-        emailService.magicURLonEmail(
-          `${baseLink}?token=${magicURLToken}`
-        );
+        (customEmailTemplate &&
+          emailService.createEmailFromCustomTemplate(
+            customEmailTemplate,
+            `${baseLink}?token=${magicURLToken}`
+          )) ||
+        emailService.magicURLonEmail(`${baseLink}?token=${magicURLToken}`);
 
       // Send email to the user
       const emailResponse = await emailService.send(
@@ -1697,9 +1713,18 @@ export const emailOTPAuth = asyncHandler(
       user.tokenExpiry = otpExpiry;
       await user.save();
 
+      // Extract the custom email template set by the admin
+      const customEmailTemplate =
+        projectFromDB.config.emailTemplates?.OTPonEmail;
+
       // Generate the email to be sent to the user inbox (either default or custom)
       const otpVerificationEmail =
-        projectFromDB.config.emailTemplates?.OTPonEmail ||
+        (customEmailTemplate &&
+          emailService.createEmailFromCustomTemplate(
+            customEmailTemplate,
+            undefined,
+            newOtp.unhashedOTP
+          )) ||
         emailService.OTPonEmail(newOtp.unhashedOTP);
 
       // Send email to the user

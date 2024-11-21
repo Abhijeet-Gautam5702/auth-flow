@@ -19,6 +19,17 @@ export class Email {
     this.project = project;
   }
 
+  // Create an email from the custom template given by the admin (stored in the database)
+  public createEmailFromCustomTemplate = (
+    template: string,
+    redirectURL?: string, // frontend URL where the user will be redirected upon clicking the link in the email
+    otp?: string
+  ) => {
+    return template
+      .replace("${link}", redirectURL || "")
+      .replace("${otp}", otp || "");
+  };
+
   private _helperEmail = (
     title: string,
     message: string,
