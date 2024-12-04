@@ -111,6 +111,7 @@ export const validateLogInput = (input: ILogValidationInput) => {
     validations.endDate.success &&
     input.startDate! >= input.endDate
   ) {
+    console.log("here")
     throw new ApiError(
       responseType.VALIDATION_ERROR.code,
       responseType.VALIDATION_ERROR.type,

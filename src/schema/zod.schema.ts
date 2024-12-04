@@ -10,9 +10,9 @@ export const ZUsername = z
   .string()
   .min(3, { message: "Username must be at least 3 characters long" })
   .max(30, { message: "Username must be at most 30 characters long" })
-  .regex(/^[a-zA-Z0-9_]+$/, {
+  .regex(/^[a-zA-Z]+(?:\s[a-zA-Z]+)*$/, {
     message:
-      "Username can only contain alphanumeric characters and underscores",
+      "Name can only contain letters and single spaces between words. No numbers or special characters allowed.",
   });
 
 export const ZPassword = z
@@ -67,9 +67,18 @@ export const ZObjectId = z.instanceof(mongoose.Types.ObjectId).or(z.string());
 
 export const ZProjectName = z
   .string()
-  .min(4, { message: "Project-Name must be at least 4 characters long" })
-  .max(20, { message: "Project-Name must be at most 20 characters long" })
+  .min(3, { message: "Project-Name must be at least 3 characters long" })
+  .max(30, { message: "Project-Name must be at most 30 characters long" })
   .regex(/^[a-zA-Z][a-zA-Z0-9-]*$/, {
     message:
       "Project-Name must start with an alphabet and can only contain letters, numbers, and hyphens",
+  });
+
+export const ZAppName = z
+  .string()
+  .min(3, { message: "Project-Name must be at least 3 characters long" })
+  .max(30, { message: "Project-Name must be at most 30 characters long" })
+  .regex(/^[a-zA-Z-]+(?:\s[a-zA-Z-]+)*[a-zA-Z-]+$/, {
+    message:
+      "App name can only contain letters, hyphens, and single spaces between words, with no whitespace at the start or end. No numbers or special characters allowed",
   });
