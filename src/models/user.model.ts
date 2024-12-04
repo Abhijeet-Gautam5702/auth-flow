@@ -1,4 +1,4 @@
-import { model, Schema } from "mongoose";
+import { model, Schema, Types } from "mongoose";
 import { IUser, IUserMethods, IUserModel } from "../types/types";
 import bcrypt from "bcrypt";
 import { logger } from "../utils/logger";
@@ -38,7 +38,7 @@ const UserSchema = new Schema<IUser, IUserModel, IUserMethods>(
     email: {
       type: String,
       trim: true,
-      unique: true,
+      // unique: true,
       required: true,
     },
     password: {
@@ -102,6 +102,199 @@ UserSchema.methods.validatePassword = async function (
       "The password could not be compared with the hashed password stored in database",
       error
     );
+  }
+};
+
+// Mongoose Static methods
+UserSchema.statics.getUsersByProject = async function ({
+  projectId,
+  startDate,
+  endDate,
+  page = 1,
+  queryItemCount = 10,
+}) {
+  try {
+    let isPageValid: boolean = true;
+    // Calculate documents to skip based on pagination
+    let skipDocs = (page - 1) * queryItemCount; // Create base query
+    const query = {
+      projectId: new Types.ObjectId(String(projectId)),
+      // Add date range filter if provided
+      ...(startDate || endDate
+        ? {
+            createdAt: {
+              ...(startDate !== "undefined"
+                ? { $gte: new Date(startDate) }
+                : {}),
+              ...(endDate !== "undefined" ? { $lte: new Date(endDate) } : {}),
+            },
+          }
+        : {}),
+    };
+    // Get total count for pagination
+    const totalDocs = await this.countDocuments(query);
+
+    if (!totalDocs) {
+      throw new ApiError(
+        responseType.UNSUCCESSFUL.code,
+        responseType.UNSUCCESSFUL.type,
+        `No users found for the requested query`
+      );
+    }
+
+    // Validate page number
+    if (totalDocs && Math.ceil(totalDocs / queryItemCount) < page) {
+      isPageValid = false;
+      skipDocs = 0; // Reset the skipDocs to 0 if the page number is invalid
+    }
+
+    // Fetch users with pagination
+    const users = await this.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $sort: {
+          createdAt: -1,
+        },
+      },
+      {
+        $skip: skipDocs,
+      },
+      {
+        $limit: queryItemCount,
+      },
+      {
+        $project: {
+          password: 0,
+          token: 0,
+          tokenExpiry: 0,
+          __v: 0,
+          updatedAt: 0,
+        },
+      },
+    ]);
+
+    return {
+      users,
+      pagination: {
+        hasNextPage: isPageValid ? page * queryItemCount < totalDocs : false,
+        hasPreviousPage: isPageValid ? page > 1 : false,
+        itemLimit: queryItemCount,
+        currentPageNumber: isPageValid ? page : 1,
+        totalDocs,
+        totalPages: Math.ceil(totalDocs / queryItemCount),
+      },
+    };
+  } catch (error: any) {
+    logger(
+      responseType.DATABASE_ERROR.type,
+      `Unable to fetch users | Error: ${error.message}`
+    );
+    throw error;
+  }
+};
+
+UserSchema.statics.searchUsers = async function ({
+  searchQuery,
+  projectId,
+  startDate,
+  endDate,
+  page = 1,
+  queryItemCount = 10,
+}) {
+  try {
+    let isPageValid: boolean = true;
+    let skipDocs = (page - 1) * queryItemCount;
+
+    // Build search criteria
+    const searchCriteria = {
+      $or: [
+        { username: { $regex: searchQuery, $options: "i" } },
+        { email: { $regex: searchQuery, $options: "i" } },
+        // Only add _id search if the searchQuery is a valid ObjectId
+        ...(Types.ObjectId.isValid(searchQuery)
+          ? [{ _id: new Types.ObjectId(searchQuery as string) }]
+          : []),
+      ],
+      // Add projectId filter if provided
+      ...(projectId
+        ? { projectId: new Types.ObjectId(String(projectId)) }
+        : {}),
+      // Add date range filter if provided
+      ...(startDate || endDate
+        ? {
+            createdAt: {
+              ...(startDate !== "undefined"
+                ? { $gte: new Date(startDate) }
+                : {}),
+              ...(endDate !== "undefined" ? { $lte: new Date(endDate) } : {}),
+            },
+          }
+        : {}),
+    };
+
+    // Get total count for pagination
+    const totalDocs = await this.countDocuments(searchCriteria);
+
+    if (!totalDocs) {
+      throw new ApiError(
+        responseType.UNSUCCESSFUL.code,
+        responseType.UNSUCCESSFUL.type,
+        `No users found matching the search criteria`
+      );
+    }
+
+    // Validate page number
+    if (totalDocs && Math.ceil(totalDocs / queryItemCount) < page) {
+      isPageValid = false;
+      skipDocs = 0; // Reset the skipDocs to 0 if the page number is invalid
+    }
+
+    // Fetch users with pagination
+    const users = await this.aggregate([
+      {
+        $match: searchCriteria,
+      },
+      {
+        $sort: {
+          createdAt: -1,
+        },
+      },
+      {
+        $skip: skipDocs,
+      },
+      {
+        $limit: queryItemCount,
+      },
+      {
+        $project: {
+          password: 0,
+          token: 0,
+          tokenExpiry: 0,
+          __v: 0,
+          updatedAt: 0,
+        },
+      },
+    ]);
+
+    return {
+      users,
+      pagination: {
+        hasNextPage: isPageValid ? page * queryItemCount < totalDocs : false,
+        hasPreviousPage: isPageValid ? page > 1 : false,
+        itemLimit: queryItemCount,
+        currentPageNumber: isPageValid ? page : 1,
+        totalPages: Math.ceil(totalDocs / queryItemCount),
+        totalDocs,
+      },
+    };
+  } catch (error: any) {
+    logger(
+      responseType.DATABASE_ERROR.type,
+      `Unable to search users | Error: ${error.message}`
+    );
+    throw error;
   }
 };
 

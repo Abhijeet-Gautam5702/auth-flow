@@ -4,8 +4,12 @@ import {
   createLoginSession,
   deleteAccount,
   deleteLoginSession,
+  getAllUsersFromConsole,
+  getCurrentAdmin,
   getUserFromConsole,
   refreshAccessToken,
+  searchUsersFromConsole,
+  updateAdminAccount,
   verifyUserFromConsole,
 } from "../controllers/admin.controller";
 import { authenticateAdmin } from "../middlewares/admin-auth";
@@ -20,10 +24,12 @@ import {
 
 const router = Router();
 
+router.route("/account").get(authenticateAdmin, getCurrentAdmin);
 router.route("/account/create").post(createAccount);
 router.route("/account/login").post(createLoginSession);
 router.route("/account/logout").put(authenticateAdmin, deleteLoginSession);
 router.route("/account/delete").delete(authenticateAdmin, deleteAccount);
+router.route("/account/update").put(authenticateAdmin, updateAdminAccount);
 
 router.route("/access-token/refresh").post(refreshAccessToken);
 
@@ -31,6 +37,12 @@ router.route("/access-token/refresh").post(refreshAccessToken);
 router
   .route("/get-user/:userId")
   .get(authenticateAdmin, validateProject, getUserFromConsole);
+router
+  .route("/search-users")
+  .get(authenticateAdmin, validateProject, searchUsersFromConsole);
+router
+  .route("/get-all-users")
+  .get(authenticateAdmin, validateProject, getAllUsersFromConsole);
 router
   .route("/verify-user")
   .put(authenticateAdmin, validateProject, verifyUserFromConsole);

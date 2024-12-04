@@ -9,6 +9,7 @@ import {
   getProject,
   projectOverview,
   resetEmailTemplateToDefault,
+  resetSecuritySettingToDefault,
   updateAppEmail,
   updateAppName,
   updateEmailTemplates,
@@ -38,7 +39,7 @@ router
   .put(validateProject, resetEmailTemplateToDefault);
 router
   .route("/reset/security-setting")
-  .put(validateProject, resetEmailTemplateToDefault);
+  .put(validateProject, resetSecuritySettingToDefault);
 
 router.route("/overview").get(validateProject, projectOverview);
 

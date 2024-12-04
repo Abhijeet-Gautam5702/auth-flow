@@ -1,8 +1,8 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, query, Request, Response } from "express";
 import { asyncHandler } from "../utils/async-handler";
 import { ApiError } from "../utils/custom-api-error";
 import { cookieOptions, env, responseType } from "../constants";
-import { validateSignupInput } from "../schema/validation";
+import { validateLogInput, validateSignupInput } from "../schema/validation";
 import { ApiResponse } from "../utils/custom-api-response";
 import { filterObject } from "../utils/filter-object";
 import { generateToken } from "../utils/token-generator";
@@ -11,7 +11,7 @@ import { Admin } from "../models/admin.model";
 import jwt from "jsonwebtoken";
 import { User } from "../models/user.model";
 import { Session } from "../models/session.model";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { Project } from "../models/project.model";
 
 /* -------------------------- ADMIN AUTHENTICATION CONTROLLERS ----------------------------- */
@@ -20,16 +20,16 @@ import { Project } from "../models/project.model";
 export const createAccount = asyncHandler(
   async (req: Request, res: Response) => {
     // Get the user credentials
-    const { email, password } = req.body;
-    if (!(email && password)) {
+    const { name, email, password } = req.body;
+    if (!(name && email && password)) {
       throw new ApiError(
         responseType.INVALID_FORMAT.code,
         responseType.INVALID_FORMAT.type,
-        "One or more field(s) are not provided. Please enter all fields."
+        "One or more required field(s) are not provided."
       );
     }
     // Validate schema of input fields
-    const validation = validateSignupInput({ password, email });
+    const validation = validateSignupInput({ username: name, password, email });
     if (!validation.success) {
       throw new ApiError(
         responseType.INVALID_FORMAT.code,
@@ -51,6 +51,7 @@ export const createAccount = asyncHandler(
     }
     // Create a new account
     const createdAdmin = await Admin.create({
+      name,
       email,
       password,
     });
@@ -97,6 +98,53 @@ export const deleteAccount = asyncHandler(
           responseType.ACCOUNT_DELETED.type,
           "Admin Account deleted successfully",
           {}
+        )
+      );
+  }
+);
+
+// SECURED ROUTE: UPDATE ADMIN ACCOUNT DETAILS
+export const updateAdminAccount = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Admin-auth middleware: Authenticate the admin
+    const adminId = req.admin?.id;
+
+    // Get the data from the request-body
+    const { name, email, password } = req.body;
+
+    if (!name && !email && !password) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "No data provided in the Request body."
+      );
+    }
+
+    // Find the admin from the database and update the details
+    const adminFromDB = await Admin.findById(adminId).select(
+      "-refreshToken -refreshTokenExpiry -accessToken -accessTokenExpiry -__v"
+    );
+    if (name) {
+      adminFromDB!.name = name;
+    }
+    if (email) {
+      adminFromDB!.email = email;
+    }
+    if (password) {
+      adminFromDB!.password = password;
+    }
+
+    await adminFromDB!.save();
+
+    // Send response
+    res
+      .status(responseType.SUCCESSFUL.code)
+      .json(
+        new ApiResponse(
+          responseType.SUCCESSFUL.code,
+          responseType.SUCCESSFUL.type,
+          "Admin data updated successfully",
+          adminFromDB
         )
       );
   }
@@ -196,6 +244,38 @@ export const createLoginSession = asyncHandler(
           responseType.SESSION_CREATED.type,
           "Login session created successfully",
           adminData
+        )
+      );
+  }
+);
+
+// GET CURRENT LOGGED-IN ADMIN
+export const getCurrentAdmin = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Admin-auth-middleware
+    const adminId = req.admin?.id;
+
+    // Get the current admin from the database
+    const adminFromDB = await Admin.findById(adminId).select(
+      "-password -verificationToken -verificationTokenExpiry -resetPasswordToken -resetPasswordTokenExpiry"
+    );
+    if (!adminFromDB) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "Admin not found in the database"
+      );
+    }
+
+    // Send response with admin data
+    res
+      .status(responseType.SUCCESSFUL.code)
+      .json(
+        new ApiResponse(
+          responseType.SUCCESSFUL.code,
+          responseType.SUCCESSFUL.type,
+          "Currently logged-in admin fetched successfully",
+          adminFromDB
         )
       );
   }
@@ -380,6 +460,126 @@ export const getUserFromConsole = asyncHandler(
           responseType.SUCCESSFUL.type,
           "User-details fetched successfully",
           responseData
+        )
+      );
+  }
+);
+
+// SEARCH A USER IN A PROJECT
+export const searchUsersFromConsole = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Admin-Auth middleware: Authenticate the admin
+    const adminId = req.admin?.id;
+
+    // Project-Validation middleware: Validate the project
+    const projectId = req.project?.id;
+
+    // Get details from request-query parameters
+    const page = req.query.page ? Number(req.query.page) : undefined;
+    const itemLimit = req.query.itemLimit
+      ? Number(req.query.itemLimit)
+      : undefined;
+    const startDate = req.query.startDate
+      ? String(req.query.startDate)
+      : undefined;
+    const endDate = req.query.endDate ? String(req.query.endDate) : undefined;
+    const searchQuery = req.query.searchQuery as string;
+
+    // Validate the format of request-query parameters
+    const validationResponse = validateLogInput({
+      page: Number(page),
+      itemLimit: Number(itemLimit),
+      startDate,
+      endDate,
+      projectId,
+    });
+    if (!validationResponse.success) {
+      throw new ApiError(
+        responseType.VALIDATION_ERROR.code,
+        responseType.VALIDATION_ERROR.type,
+        "Invalid data is passed in the Request-query parameters.",
+        validationResponse.errors
+      );
+    }
+
+    // Search the users from the database
+    const usersFromDB = await User.searchUsers({
+      searchQuery,
+      projectId: projectId!,
+      page: Number(page),
+      queryItemCount: Number(itemLimit),
+      startDate,
+      endDate,
+    });
+
+    // Send response
+    res
+      .status(responseType.SUCCESSFUL.code)
+      .json(
+        new ApiResponse(
+          responseType.SUCCESSFUL.code,
+          responseType.SUCCESSFUL.type,
+          "Users fetched successfully",
+          usersFromDB
+        )
+      );
+  }
+);
+
+// GET ALL USERS IN A PROJECT
+export const getAllUsersFromConsole = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Admin-Auth middleware
+    const adminId = req.admin?.id;
+
+    // Project-Validation middleware
+    const projectId = req.project?.id;
+
+    // Get details from request-query parameters
+    const page = req.query.page ? Number(req.query.page) : undefined;
+    const itemLimit = req.query.itemLimit
+      ? Number(req.query.itemLimit)
+      : undefined;
+    const startDate = req.query.startDate
+      ? String(req.query.startDate)
+      : undefined;
+    const endDate = req.query.endDate ? String(req.query.endDate) : undefined;
+
+    // Validate the format of request-query parameters
+    const validationResponse = validateLogInput({
+      page: Number(page),
+      itemLimit: Number(itemLimit),
+      startDate,
+      endDate,
+      projectId,
+    });
+    if (!validationResponse.success) {
+      throw new ApiError(
+        responseType.VALIDATION_ERROR.code,
+        responseType.VALIDATION_ERROR.type,
+        "Invalid data is passed in the Request-query parameters.",
+        validationResponse.errors
+      );
+    }
+
+    // Get users from database
+    const usersFromDB = await User.getUsersByProject({
+      projectId: projectId!,
+      page: Number(page),
+      queryItemCount: Number(itemLimit),
+      startDate,
+      endDate,
+    });
+
+    // Send response
+    res
+      .status(responseType.SUCCESSFUL.code)
+      .json(
+        new ApiResponse(
+          responseType.SUCCESSFUL.code,
+          responseType.SUCCESSFUL.type,
+          "Users fetched successfully",
+          usersFromDB
         )
       );
   }

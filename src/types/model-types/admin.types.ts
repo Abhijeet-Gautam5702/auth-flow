@@ -3,6 +3,7 @@
 import { Model, Document, Types } from "mongoose";
 
 export interface IAdminBase {
+  name: string;
   email: string;
   password: string;
   accessToken: string;

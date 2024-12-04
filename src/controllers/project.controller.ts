@@ -19,7 +19,7 @@ import {
   EmailTemplateName,
 } from "../types/model-types/project.types";
 import { ProjectLimit } from "../features/project-limit";
-import { ZEmail, ZProjectName } from "../schema/zod.schema";
+import { ZAppName, ZEmail, ZProjectName } from "../schema/zod.schema";
 
 // SECURED ROUTE: CREATE NEW PROJECT
 export const createProject = asyncHandler(
@@ -28,7 +28,10 @@ export const createProject = asyncHandler(
     const adminId = req.admin?.id;
 
     // Get the project-details from the request-body
-    const { projectName, config } = req.body;
+    const { projectName, config, appName, appEmail } = req.body;
+
+    // TODO: Validate the project details-format sent over the request body
+
     if (projectName.trim() === "") {
       throw new ApiError(
         responseType.INVALID_FORMAT.code,
@@ -61,6 +64,8 @@ export const createProject = asyncHandler(
     const createdProject = await Project.create({
       projectName,
       owner: adminId,
+      appName,
+      appEmail,
       config,
       projectKey: `temporary-project-key-${Math.random()}`,
     });
@@ -194,7 +199,7 @@ export const updateAppName = asyncHandler(
     }
 
     // Validate the project-name
-    const isAppNameValid = ZProjectName.safeParse(appName);
+    const isAppNameValid = ZAppName.safeParse(appName);
     if (!isAppNameValid.success) {
       throw new ApiError(
         responseType.INVALID_FORMAT.code,
@@ -560,7 +565,7 @@ export const getAllProjects = asyncHandler(
     const projectsFromDB = await Project.find({
       owner: adminId,
     });
-    if (!projectsFromDB.length) {
+    if (!projectsFromDB) {
       throw new ApiError(
         responseType.NOT_FOUND.code,
         responseType.NOT_FOUND.type,

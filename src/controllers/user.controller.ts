@@ -58,7 +58,7 @@ export const createAccount = asyncHandler(
     }
     // Verify if user already exists
     const userFromDB = await User.findOne({
-      $or: [{ email }, { username }],
+      $and: [{ $or: [{ email }, { username }] }, { projectId }],
     });
     if (userFromDB) {
       // Log an event

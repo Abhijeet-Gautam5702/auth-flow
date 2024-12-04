@@ -23,7 +23,43 @@ export interface IUserMethods {
 }
 
 // Mongoose: Interface for static methods on user documents
-export interface IUserStaticMethods {}
+export interface IUserStaticMethods {
+  getUsersByProject(input: {
+    projectId: Types.ObjectId | string;
+    startDate?: Date | string;
+    endDate?: Date | string;
+    page?: number;
+    queryItemCount?: number;
+  }): Promise<{
+    users: IUser[];
+    pagination: {
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+      itemLimit: number;
+      currentPageNumber: number;
+      totalDocs: number;
+      totalPages: number;
+    };
+  }>;
+  searchUsers(input:{
+    searchQuery: string;
+    projectId: Types.ObjectId | string;
+    page?: number;
+    queryItemCount?: number;
+    startDate?: Date | string;
+    endDate?: Date | string;
+  }): Promise<{
+    users: IUser[];
+    pagination: {
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+      itemLimit: number;
+      currentPageNumber: number;
+      totalDocs: number;
+      totalPages: number;
+    };
+  }>;
+}
 
 // Mongoose: Combined interface for a User Document
 export interface IUser extends IUserBase, Document<Types.ObjectId> {}
