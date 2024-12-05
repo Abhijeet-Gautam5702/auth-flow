@@ -13,6 +13,7 @@ import {
   refreshAccessToken,
   resetPassword,
   verifyEmail,
+  updateUserAccount,
 } from "../controllers/user.controller";
 import { authenticateUser } from "../middlewares/user-auth";
 import { accountLockout } from "../features/account-lockout";
@@ -27,6 +28,7 @@ router.route("/delete").delete(authenticateUser, deleteAccount);
 router.route("/access-token/refresh").post(refreshAccessToken);
 router.route("/logs/all").get(authenticateUser, getLogsByUserId);
 router.route("/logs").get(authenticateUser, getUserLogsByEventCode);
+router.route("/update").put(authenticateUser, updateUserAccount);
 
 // Endpoints related to a single session of a user
 router

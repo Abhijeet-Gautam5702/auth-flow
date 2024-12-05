@@ -20,6 +20,7 @@ import {
   getAllLoginSessions as getAllUserLoginSessions,
   deleteLoginSessionByID as deleteUserLoginSession,
   deleteAllLoginSessions as deleteAllUserLoginSessions,
+  updateUserAccount,
 } from "../controllers/user.controller";
 
 const router = Router();
@@ -61,5 +62,8 @@ router
 router
   .route("/clear-user-sessions/:userId")
   .delete(authenticateAdmin, validateProject, deleteAllUserLoginSessions);
+router
+  .route("/update-user/:userId")
+  .put(authenticateAdmin, validateProject, updateUserAccount);
 
 export const adminRouter = router;

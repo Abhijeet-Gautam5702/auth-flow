@@ -12,7 +12,7 @@ import { EventCode, IProject, IRequest, IUser } from "../types/types";
 import { parseUserAgent } from "../utils/user-agent-parser";
 import { Project } from "../models/project.model";
 import jwt from "jsonwebtoken";
-import { ZEmail, ZPassword } from "../schema/zod.schema";
+import { ZEmail, ZPassword, ZUsername } from "../schema/zod.schema";
 import { otp } from "../features/otp";
 import { Types } from "mongoose";
 import { accountLockout } from "../features/account-lockout";
@@ -2020,5 +2020,111 @@ export const emailOTPAuth = asyncHandler(
         "Request query parameters not sent correctly"
       );
     }
+  }
+);
+
+// SECURED ROUTE: UPDATE USER ACCOUNT DETAILS
+export const updateUserAccount = asyncHandler(
+  async (req: IRequest, res: Response) => {
+    // Get userId either from auth middleware or request params
+    let userId = req.user?.id;
+    if (!userId) {
+      userId = new Types.ObjectId(req.params.userId);
+    }
+
+    // Get the data from the request-body
+    const { username, email, password } = req.body;
+
+    if (!username && !email && !password) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "No data provided in the Request body."
+      );
+    }
+
+    // Validate the provided fields using Zod schemas
+    if (username) {
+      const usernameValidation = ZUsername.safeParse(username);
+      if (!usernameValidation.success) {
+        throw new ApiError(
+          responseType.INVALID_FORMAT.code,
+          responseType.INVALID_FORMAT.type,
+          "Invalid username format",
+          usernameValidation.error.errors
+        );
+      }
+    }
+
+    if (email) {
+      const emailValidation = ZEmail.safeParse(email);
+      if (!emailValidation.success) {
+        throw new ApiError(
+          responseType.INVALID_FORMAT.code,
+          responseType.INVALID_FORMAT.type,
+          "Invalid email format",
+          emailValidation.error.errors
+        );
+      }
+    }
+
+    if (password) {
+      const passwordValidation = ZPassword.safeParse(password);
+      if (!passwordValidation.success) {
+        throw new ApiError(
+          responseType.INVALID_FORMAT.code,
+          responseType.INVALID_FORMAT.type,
+          "Invalid password format",
+          passwordValidation.error.errors
+        );
+      }
+    }
+
+    // Find the user from the database and update the details
+    const userFromDB = await User.findById(userId).select(
+      "-password -token -tokenExpiry -__v"
+    );
+    
+    if (!userFromDB) {
+      throw new ApiError(
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "User not found in the database"
+      );
+    }
+
+    // Update fields if provided
+    if (username) {
+      userFromDB.username = username;
+    }
+    if (email) {
+      userFromDB.email = email;
+      // Reset verification status since email changed
+      userFromDB.isVerified = false;
+    }
+    if (password) {
+      userFromDB.password = password;
+    }
+
+    await userFromDB.save();
+
+    // Log an event
+    await securityLog.logEvent({
+      userId: userFromDB._id,
+      eventCode: EventCode.ACCOUNT_UPDATE,
+      eventSuccess: true,
+    });
+
+    // Send response
+    res
+      .status(responseType.SUCCESSFUL.code)
+      .json(
+        new ApiResponse(
+          responseType.SUCCESSFUL.code,
+          responseType.SUCCESSFUL.type,
+          "User data updated successfully",
+          userFromDB
+        )
+      );
   }
 );
