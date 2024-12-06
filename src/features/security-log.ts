@@ -237,7 +237,6 @@ class SecurityLog {
     page = 1,
     queryItemCount = this.defaultItemCount,
   }: Omit<ILogInput, "eventCode">) => {
-    // Create query
     const query = {
       userId: new mongoose.Types.ObjectId(String(userId)),
       projectId: new mongoose.Types.ObjectId(String(projectId)),
@@ -277,7 +276,6 @@ class SecurityLog {
     page = 1,
     queryItemCount = this.defaultItemCount,
   }: Omit<ILogInput, "userId">) => {
-    // Create query
     const query = {
       projectId: new mongoose.Types.ObjectId(String(projectId)),
       "event.code": eventCode, // Used for matching nested properties (Can be done using $and as well)
@@ -315,7 +313,6 @@ class SecurityLog {
     page = 1,
     queryItemCount = this.defaultItemCount,
   }: ILogInput) => {
-    // Create query
     const query = {
       userId: new mongoose.Types.ObjectId(String(userId)),
       projectId: new mongoose.Types.ObjectId(String(projectId)),

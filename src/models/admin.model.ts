@@ -7,10 +7,10 @@ import { ApiError } from "../utils/custom-api-error";
 
 const AdminSchema = new Schema<IAdmin, IAdminModel, IAdminMethods>(
   {
-    name:{
-      type:String,
-      required:true,
-      trim:true
+    name: {
+      type: String,
+      required: true,
+      trim: true,
     },
     email: {
       type: String,
@@ -30,7 +30,7 @@ const AdminSchema = new Schema<IAdmin, IAdminModel, IAdminMethods>(
   { timestamps: true, validateBeforeSave: true }
 );
 
-// Hash the password everytime before saving
+// MONGOOSE MIDDLEWARE: Hash the password everytime before saving
 AdminSchema.pre("save", async function () {
   try {
     // Hash the password only if it was modified
@@ -46,7 +46,7 @@ AdminSchema.pre("save", async function () {
   }
 });
 
-// Mongoose Instance method to validate password
+// MONGOOSE INSTANCE METHOD: Validate password
 AdminSchema.methods.validatePassword = async function (
   password: string
 ): Promise<boolean> {
@@ -67,4 +67,4 @@ AdminSchema.methods.validatePassword = async function (
   }
 };
 
-export const Admin = model<IAdmin,IAdminModel>("Admin", AdminSchema);
+export const Admin = model<IAdmin, IAdminModel>("Admin", AdminSchema);

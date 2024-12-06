@@ -6,10 +6,7 @@ import { NextFunction, Response } from "express";
 import { ApiError } from "../utils/custom-api-error";
 import { responseType } from "../constants";
 
-/* ------------------------ API RATE LIMITER CLASS ------------------------------------- */
-
 class ApiRateLimiter {
-  // Overall Rate Limiter for the entire app
   overall(interval: number, requestLimit: number) {
     return rateLimit({
       windowMs: interval,

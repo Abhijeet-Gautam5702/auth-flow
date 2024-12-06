@@ -4,7 +4,7 @@ export class ApiError extends Error implements IApiError {
   errors?: any[] | any | undefined;
   statusCode: number;
   stack?: string | undefined;
-  type: string; // response type
+  type: string;
   data: null;
   success: boolean;
 

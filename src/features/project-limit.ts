@@ -29,7 +29,7 @@ export class ProjectLimit {
     this.emailService = new EmailService(this.project);
   }
 
-  /* ------------------------------ STATIC METHODS ------------------------------------- */
+  /* ---------------------------- MONGOOSE STATIC METHODS ------------------------------------- */
 
   // Static create-method
   /*
@@ -77,7 +77,7 @@ export class ProjectLimit {
     }
   };
 
-  /* ------------------------------ INSTANCE METHODS ------------------------------------- */
+  /* ------------------------------ MONGOOSE INSTANCE METHODS ------------------------------------- */
 
   // Clear all the inactive user-accounts of the project
   public clearInactiveUserAccounts = async () => {

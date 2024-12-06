@@ -59,9 +59,9 @@ const SessionSchema = new Schema<ISession, ISessionModel, ISessionMethods>(
   { timestamps: true, validateBeforeSave: true }
 );
 
-/* ------------------------------ STATIC METHODS ------------------------------- */
+/* ---------------------------- MONGOOSE STATIC METHODS ---------------------------- */
 
-// Static method: Clear expired sessions of a user in a project
+// STATIC METHOD: Clear expired sessions of a user in a project
 SessionSchema.statics.clearExpiredSessions = async function (
   userId: Types.ObjectId,
   projectId: Types.ObjectId
@@ -84,7 +84,7 @@ SessionSchema.statics.clearExpiredSessions = async function (
   }
 };
 
-// Static method: Handle a new user-session
+// STATIC METHOD: Handle a new user-session
 SessionSchema.statics.handleNewSession = async function (
   userId: Types.ObjectId,
   projectId: Types.ObjectId

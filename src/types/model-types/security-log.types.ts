@@ -1,5 +1,3 @@
-/* --------------------------- SECURITY-LOG MODEL TYPES ------------------------------------ */
-
 import mongoose, { Model, Document, Types } from "mongoose";
 
 export enum EventCode {
@@ -13,9 +11,6 @@ export enum EventCode {
   ACCOUNT_DELETION = "ACCOUNT_DELETION",
   ACCOUNT_LOCKOUT = "ACCOUNT_LOCKOUT",
   ACCOUNT_UPDATE = "ACCOUNT_UPDATE",
-  // SESSION_CREATION,
-  // SESSION_TERMINATION,
-  // ACCESS_DENIAL,
 }
 
 export interface ISecurityLogBase {

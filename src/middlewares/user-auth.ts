@@ -43,11 +43,6 @@ export const authenticateUser = asyncHandler(
     }
 
     // Decode the token to get userId
-    /*
-        TYPE ASSERTION IN TYPESCRIPT
-
-        jwt.decode( ) will decode the token into either an object with `userId` property or null
-    */
     const decodedToken = jwt.decode(accessToken) as { userId: string } | null;
 
     // Check if user exists in database
@@ -72,7 +67,6 @@ export const authenticateUser = asyncHandler(
       token: accessToken,
     };
 
-    // Pass control to next middleware/controller
     next();
   }
 );

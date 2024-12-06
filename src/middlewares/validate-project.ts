@@ -1,5 +1,3 @@
-// Middleware to validate project credentials (to grant access to the API-endpoints)
-
 import { NextFunction, Response } from "express";
 import { IRequest } from "../types/types";
 import { asyncHandler } from "../utils/async-handler";
@@ -73,8 +71,7 @@ export const validateProject = asyncHandler(
       id: new Types.ObjectId(projectId),
       key: projectKey,
     };
-
-    // Pass control to next middleware/controller
+    
     next();
   }
 );

@@ -1,5 +1,3 @@
-/* ------------------------------ SESSION MODEL TYPES ------------------------------------ */
-
 import mongoose, { Model, Document, Types } from "mongoose";
 import { IProject } from "./project.types";
 

@@ -57,7 +57,7 @@ const UserSchema = new Schema<IUser, IUserModel, IUserMethods>(
   { timestamps: true, validateBeforeSave: true }
 );
 
-// Hash the password everytime before saving
+// MONGOOSE MIDDLEWARE: Hash the password everytime before saving
 UserSchema.pre("save", async function () {
   try {
     // Hash the password only if it was modified
@@ -73,7 +73,7 @@ UserSchema.pre("save", async function () {
   }
 });
 
-// Mongoose Instance method to validate password
+// MONGOOSE INSTANCE METHOD: Validate password
 /*
   NOTE: For TypeScript to recognize mongoose methods, we have to define the type/interface for mongoose methods separately and declare them while creating the Schema
 */
@@ -105,7 +105,9 @@ UserSchema.methods.validatePassword = async function (
   }
 };
 
-// Mongoose Static methods
+/* ---------------------------- MONGOOSE STATIC METHODS ---------------------------- */
+
+// STATIC METHOD: Get users by project
 UserSchema.statics.getUsersByProject = async function ({
   projectId,
   startDate,
@@ -195,6 +197,7 @@ UserSchema.statics.getUsersByProject = async function ({
   }
 };
 
+// STATIC METHOD: Search users using username, userId or email
 UserSchema.statics.searchUsers = async function ({
   searchQuery,
   projectId,
