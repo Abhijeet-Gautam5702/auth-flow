@@ -2,10 +2,14 @@ import { z } from "zod";
 import { EventCode } from "../types/types";
 import mongoose from "mongoose";
 
-export const ZEmail = z.string().email({
-  message: "Invalid email format",
-});
+// Email validation
+export const ZEmail = z
+  .string()
+  .regex(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, {
+    message: "Invalid email address",
+  });
 
+// Username validation
 export const ZUsername = z
   .string()
   .min(3, { message: "Username must be at least 3 characters long" })
@@ -15,20 +19,16 @@ export const ZUsername = z
       "Name can only contain letters and single spaces between words. No numbers or special characters allowed.",
   });
 
+// Password validation
 export const ZPassword = z
   .string()
-  .min(8, { message: "Password must be at least 8 characters long" })
-  .max(64, { message: "Password must be at most 64 characters long" })
-  .regex(/[A-Z]/, {
-    message: "Password must contain at least one uppercase letter",
-  })
-  .regex(/[a-z]/, {
-    message: "Password must contain at least one lowercase letter",
-  })
-  .regex(/[0-9]/, { message: "Password must contain at least one number" })
-  .regex(/[@$!%*?&]/, {
-    message: "Password must contain at least one special character (@$!%*?&)",
-  });
+  .regex(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,64}$/,
+    {
+      message:
+        "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number and one special character (@$!%*?&)",
+    }
+  );
 
 /* -------------------------------------------------------------------------------------- */
 
