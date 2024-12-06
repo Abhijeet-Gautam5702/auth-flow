@@ -38,246 +38,214 @@ export class Email {
   ) => {
     return `
     <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${title}</title>
-        <style>
-            /* Base styles */
-            .email-body {
-                margin: 0;
-                padding: 0;
-                font-family: Arial, sans-serif;
-                background-color: #f4f4f4;
-            }
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <style>
+        /* Base styles */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #f6f9fc;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
 
-            /* Container styles */
-            .email-wrapper {
-                width: 100%;
-                border-collapse: collapse;
-            }
+        /* Container styles */
+        .email-wrapper {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #f6f9fc;
+        }
 
+        .email-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Header styles */
+        .email-header {
+            padding: 40px 30px;
+            text-align: center;
+            background-color: #2563eb;
+        }
+
+        .header-title {
+            color: #ffffff;
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        /* Content styles */
+        .email-content {
+            padding: 40px 30px;
+        }
+
+        .content-message {
+            color: #4a5568;
+            font-size: 16px;
+            line-height: 1.6;
+            margin: 0 0 30px;
+        }
+
+        /* Button styles */
+        .button-wrapper {
+            width: 100%;
+            border-collapse: collapse;
+            padding: 20px 0 30px;
+            text-align: center;
+        }
+
+        .action-button {
+            display: inline-block;
+            padding: 14px 30px;
+            background-color: #2563eb;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .action-button:hover {
+            background-color: #1d4ed8;
+        }
+
+        /* Note styles */
+        .note-section {
+            color: #4a5568;
+            font-size: 14px;
+            line-height: 1.5;
+            margin: 0 0 30px;
+            padding: 15px;
+            background-color: #f8fafc;
+            border-radius: 6px;
+            border-left: 4px solid #2563eb;
+        }
+
+        .note-heading {
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        /* Footer styles */
+        .email-footer {
+            padding: 30px;
+            background-color: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .footer-text {
+            color: #718096;
+            font-size: 14px;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        /* Responsive styles */
+        @media only screen and (max-width: 600px) {
             .email-container {
-                width: 100%;
-                max-width: 600px;
-                margin: 0 auto;
-                background-color: #ffffff;
-                border-radius: 8px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                width: 100% !important;
+                margin: 0 !important;
             }
-
-            /* Header styles */
-            .email-header {
-                padding: 40px 30px;
-                text-align: center;
+            
+            .email-content, .email-header, .email-footer {
+                padding: 30px 20px;
             }
-
+            
             .header-title {
-                color: #2563eb;
-                margin: 0;
-                font-size: 28px;
-                font-weight: 700;
+                font-size: 24px;
             }
-
-            /* Content styles */
-            .email-content {
-                padding: 0 30px 30px;
-            }
-
-            .content-message {
-                color: #555555;
-                font-size: 16px;
-                line-height: 1.6;
-                margin: 0 0 20px;
-            }
-
-            /* Button styles */
-            .button-wrapper {
-                width: 100%;
-                border-collapse: collapse;
-                padding: 20px 0;
-                text-align: center;
-                margin-bottom: 20px; /* Added margin for spacing */
-            }
-
+            
             .action-button {
-                display: inline-block;
-                padding: 14px 30px;
-                background-color: #2563eb;
-                color: #ffffff !important;
-                text-decoration: none;
-                border-radius: 6px;
-                font-weight: bold;
-                text-transform: uppercase;
-                font-size: 14px;
-                transition: background-color 0.3s ease;
+                padding: 12px 25px;
+                font-size: 15px;
             }
-
-            .action-button:hover {
-                background-color: #1d4ed8;
-            }
-
-            /* Note styles */
+            
             .note-section {
-                color: #4a4a4a;
-                font-size: 14px;
-                line-height: 1.4;
-                margin: 0 0 20px;
-                padding: 15px;
-                background-color: #f8f8f8;
-                border-radius: 4px;
-                font-weight: 500;
+                padding: 12px;
             }
+        }
 
-            .note-heading {
-                font-weight: 700;
-                color: #333333;
-            }
+        
+        }
+    </style>
+</head>
+<body>
+    <table class="email-wrapper" role="presentation" cellspacing="0" cellpadding="0">
+        <tr>
+            <td align="center">
+                <table class="email-container" role="presentation" cellspacing="0" cellpadding="0">
+                    <!-- Header -->
+                    <tr>
+                        <td class="email-header">
+                            <h1 class="header-title">Welcome to AuthWave</h1>
+                        </td>
+                    </tr>
 
-            /* Footer styles */
-            .email-footer {
-                padding: 30px;
-                background-color: #f8f8f8;
-                border-bottom-left-radius: 8px;
-                border-bottom-right-radius: 8px;
-            }
+                    <!-- Main Content -->
+                    <tr>
+                        <td class="email-content">
+                            <p class="content-message">
+                                ${message}
+                            </p>
 
-            .footer-text {
-                color: #666666;
-                font-size: 14px;
-                line-height: 1.4;
-                margin: 0;
-            }
+                            <!-- Button -->
+                            <table class="button-wrapper" role="presentation" cellspacing="0" cellpadding="0">
+                                <tr>
+                                    <td align="center">
+                                        ${
+                                          link
+                                            ? `
+                                                <a href="${link}" class="action-button">
+                                                ${buttonText}
+                                                <!--Verify your account-->
+                                                </a>
+                                            `
+                                            : `
+                                                <p class="action-button">
+                                                ${buttonText}
+                                                </p>
+                                            `
+                                        }
+                                    </td>
+                                </tr>
+                            </table>
 
-            /* Responsive styles */
-            @media only screen and (max-width: 600px) {
-                .email-container {
-                    width: 100% !important;
-                    margin: 0 !important;
-                }
-                
-                .email-content {
-                    padding: 0 20px 20px;
-                }
-                
-                .email-header {
-                    padding: 30px 20px;
-                }
-                
-                .header-title {
-                    font-size: 24px;
-                }
-                
-                .action-button {
-                    padding: 12px 25px;
-                    font-size: 13px;
-                }
-                
-                .note-section {
-                    padding: 12px;
-                }
-            }
+                            <!-- Note -->
+                            <p class="note-section">
+                                <span class="note-heading">NOTE:</span> This will be valid for the next 15 minutes only.
+                            </p>
+                        </td>
+                    </tr>
 
-            /* Dark mode support */
-            @media (prefers-color-scheme: dark) {
-                .email-body {
-                    background-color: #2d2d2d;
-                }
-
-                .email-container {
-                    background-color: #1a1a1a;
-                }
-
-                .header-title {
-                    color: #3b82f6;
-                }
-
-                .content-message {
-                    color: #e0e0e0;
-                }
-
-                .note-section {
-                    background-color: #2d2d2d;
-                    color: #e0e0e0;
-                }
-
-                .note-heading {
-                    color: #ffffff;
-                }
-
-                .email-footer {
-                    background-color: #2d2d2d;
-                }
-
-                .footer-text {
-                    color: #e0e0e0;
-                }
-            }
-        </style>
-    </head>
-    <body class="email-body">
-        <table class="email-wrapper" role="presentation">
-            <tr>
-                <td>
-                    <table class="email-container" role="presentation">
-                        <!-- Header -->
-                        <tr>
-                            <td class="email-header">
-                                <h1 class="header-title">Welcome to AuthWave</h1>
-                            </td>
-                        </tr>
-
-                        <!-- Main Content -->
-                        <tr>
-                            <td class="email-content">
-                                <p class="content-message">
-                                    ${message}
-                                </p>
-
-                                <!-- Button -->
-                                <table class="button-wrapper" role="presentation">
-                                    <tr>
-                                        <td>
-                                            ${
-                                              link
-                                                ? `
-                                                    <a href="${link}" class="action-button">
-                                                    ${buttonText}
-                                                    </a>
-                                                `
-                                                : `
-                                                    <p class="action-button">
-                                                    ${buttonText}
-                                                    </p>
-                                                `
-                                            }
-                                        </td>
-                                    </tr>
-                                </table>
-
-                                <!-- Note -->
-                                <p class="note-section">
-                                    <span class="note-heading">NOTE:</span> This will be valid for the next 15 minutes only.
-                                </p>
-                            </td>
-                        </tr>
-
-                        <!-- Footer -->
-                        <tr>
-                            <td class="email-footer">
-                                <p class="footer-text">
-                                    Best regards,<br>
-                                    The AuthWave Team
-                                </p>
-                            </td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-        </table>
-    </body>
-    </html>
+                    <!-- Footer -->
+                    <tr>
+                        <td class="email-footer">
+                            <p class="footer-text">
+                                Best regards,<br>
+                                The AuthWave Team
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
 `;
   };
 
@@ -296,17 +264,20 @@ export class Email {
         <title>${title}</title>
         <style>
             /* Base styles */
-            .email-body {
+            body {
                 margin: 0;
                 padding: 0;
-                font-family: Arial, sans-serif;
-                background-color: #f4f4f4;
+                font-family: 'Arial', sans-serif;
+                background-color: #f6f9fc;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
             }
 
             /* Container styles */
             .email-wrapper {
                 width: 100%;
                 border-collapse: collapse;
+                background-color: #f6f9fc;
             }
 
             .email-container {
@@ -315,89 +286,90 @@ export class Email {
                 margin: 0 auto;
                 background-color: #ffffff;
                 border-radius: 8px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
             }
 
             /* Header styles */
             .email-header {
                 padding: 40px 30px;
                 text-align: center;
+                background-color: #dc2626;
             }
 
             .header-title {
-                color: #dc2626; /* Changed to red */
+                color: #ffffff;
                 margin: 0;
                 font-size: 28px;
                 font-weight: 700;
+                letter-spacing: -0.5px;
             }
 
             /* Content styles */
             .email-content {
-                padding: 0 30px 30px;
+                padding: 40px 30px;
             }
 
             .content-message {
-                color: #555555;
+                color: #4a5568;
                 font-size: 16px;
                 line-height: 1.6;
-                margin: 0 0 20px;
+                margin: 0 0 30px;
             }
 
             /* Button styles */
             .button-wrapper {
                 width: 100%;
                 border-collapse: collapse;
-                padding: 20px 0;
+                padding: 20px 0 30px;
                 text-align: center;
-                margin-bottom: 20px; /* Added margin for spacing */
             }
 
             .action-button {
                 display: inline-block;
                 padding: 14px 30px;
-                background-color: #dc2626; /* Changed to red */
+                background-color: #dc2626;
                 color: #ffffff !important;
                 text-decoration: none;
                 border-radius: 6px;
-                font-weight: bold;
-                text-transform: uppercase;
-                font-size: 14px;
+                font-weight: 600;
+                font-size: 16px;
                 transition: background-color 0.3s ease;
+                margin-bottom: 20px;
             }
 
             .action-button:hover {
-                background-color: #b91c1c; /* Darker red on hover */
+                background-color: #b91c1c;
             }
 
             /* Note styles */
             .note-section {
-                color: #4a4a4a;
+                color: #4a5568;
                 font-size: 14px;
-                line-height: 1.4;
-                margin: 0 0 20px;
+                line-height: 1.5;
+                margin: 0 0 30px;
                 padding: 15px;
-                background-color: #fef2f2; /* Light red background */
-                border-radius: 4px;
-                font-weight: 500;
+                background-color: #fef2f2;
+                border-radius: 6px;
+                border-left: 4px solid #dc2626;
             }
 
             .note-heading {
                 font-weight: 700;
-                color: #dc2626; /* Changed to red */
+                color: #dc2626;
             }
 
             /* Footer styles */
             .email-footer {
                 padding: 30px;
-                background-color: #f8f8f8;
-                border-bottom-left-radius: 8px;
-                border-bottom-right-radius: 8px;
+                background-color: #f8fafc;
+                border-top: 1px solid #e2e8f0;
             }
 
             .footer-text {
-                color: #666666;
+                color: #718096;
                 font-size: 14px;
-                line-height: 1.4;
+                line-height: 1.5;
                 margin: 0;
             }
 
@@ -408,11 +380,7 @@ export class Email {
                     margin: 0 !important;
                 }
                 
-                .email-content {
-                    padding: 0 20px 20px;
-                }
-                
-                .email-header {
+                .email-content, .email-header, .email-footer {
                     padding: 30px 20px;
                 }
                 
@@ -422,56 +390,21 @@ export class Email {
                 
                 .action-button {
                     padding: 12px 25px;
-                    font-size: 13px;
+                    font-size: 15px;
+                    margin-bottom: 20px;
                 }
                 
                 .note-section {
                     padding: 12px;
                 }
             }
-
-            /* Dark mode support */
-            @media (prefers-color-scheme: dark) {
-                .email-body {
-                    background-color: #2d2d2d;
-                }
-
-                .email-container {
-                    background-color: #1a1a1a;
-                }
-
-                .header-title {
-                    color: #ef4444; /* Adjusted red for dark mode */
-                }
-
-                .content-message {
-                    color: #e0e0e0;
-                }
-
-                .note-section {
-                    background-color: #402626; /* Darker red background for dark mode */
-                    color: #e0e0e0;
-                }
-
-                .note-heading {
-                    color: #ef4444; /* Adjusted red for dark mode */
-                }
-
-                .email-footer {
-                    background-color: #2d2d2d;
-                }
-
-                .footer-text {
-                    color: #e0e0e0;
-                }
-            }
         </style>
     </head>
-    <body class="email-body">
-        <table class="email-wrapper" role="presentation">
+    <body>
+        <table class="email-wrapper" role="presentation" cellspacing="0" cellpadding="0">
             <tr>
-                <td>
-                    <table class="email-container" role="presentation">
+                <td align="center">
+                    <table class="email-container" role="presentation" cellspacing="0" cellpadding="0">
                         <!-- Header -->
                         <tr>
                             <td class="email-header">
@@ -490,9 +423,9 @@ export class Email {
                                   buttonText && link
                                     ? `
                                 <!-- Button -->
-                                <table class="button-wrapper" role="presentation">
+                                <table class="button-wrapper" role="presentation" cellspacing="0" cellpadding="0">
                                     <tr>
-                                        <td>
+                                        <td align="center">
                                             <a href="${link}" class="action-button">
                                                 ${buttonText}
                                             </a>
@@ -524,7 +457,7 @@ export class Email {
             </tr>
         </table>
     </body>
-    </html>
+</html>
     `;
   };
 
