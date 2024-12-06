@@ -13,6 +13,7 @@ import { User } from "../models/user.model";
 import { Session } from "../models/session.model";
 import mongoose, { Types } from "mongoose";
 import { Project } from "../models/project.model";
+import { Log } from "../models/security-log.model";
 
 /* -------------------------- ADMIN AUTHENTICATION CONTROLLERS ----------------------------- */
 
@@ -83,9 +84,26 @@ export const deleteAccount = asyncHandler(
     // Delete admin-document
     await Admin.findByIdAndDelete(adminId);
 
-    // PENDING: Delete all projects whose owner is the current admin
+    // Get all the projects owned by the admin
+    const projectsToBeDeleted = await Project.find({ owner: adminId });
 
-    // PENDING: Delete all users involved in the projects owned by the admin
+    // Delete all projects whose owner is the current admin
+    await Project.deleteMany({ owner: adminId });
+
+    // Delete all users associated with the projects owned by the admin
+    await User.deleteMany({
+      projectId: { $in: projectsToBeDeleted.map((project) => project._id) },
+    });
+
+    // Delete all sessions associated with the projects owned by the admin
+    await Session.deleteMany({
+      projectId: { $in: projectsToBeDeleted.map((project) => project._id) },
+    });
+
+    // Delete all the logs associated with the projects owned by the admin
+    await Log.deleteMany({
+      projectId: { $in: projectsToBeDeleted.map((project) => project._id) },
+    });
 
     // Clear all browser cookies and send response
     res
