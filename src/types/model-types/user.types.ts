@@ -1,6 +1,13 @@
-/* ------------------------------ USER MODEL TYPES ------------------------------------ */
-
 import mongoose, { Model, Document, Types } from "mongoose";
+
+export interface IPagination {
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  itemLimit: number;
+  currentPageNumber: number;
+  totalDocs: number;
+  totalPages: number;
+}
 
 // Mongoose: Base interface for User-document
 export interface IUserBase {
@@ -32,16 +39,9 @@ export interface IUserStaticMethods {
     queryItemCount?: number;
   }): Promise<{
     users: IUser[];
-    pagination: {
-      hasNextPage: boolean;
-      hasPreviousPage: boolean;
-      itemLimit: number;
-      currentPageNumber: number;
-      totalDocs: number;
-      totalPages: number;
-    };
+    pagination: IPagination;
   }>;
-  searchUsers(input:{
+  searchUsers(input: {
     searchQuery: string;
     projectId: Types.ObjectId | string;
     page?: number;
@@ -50,14 +50,7 @@ export interface IUserStaticMethods {
     endDate?: Date | string;
   }): Promise<{
     users: IUser[];
-    pagination: {
-      hasNextPage: boolean;
-      hasPreviousPage: boolean;
-      itemLimit: number;
-      currentPageNumber: number;
-      totalDocs: number;
-      totalPages: number;
-    };
+    pagination: IPagination;
   }>;
 }
 

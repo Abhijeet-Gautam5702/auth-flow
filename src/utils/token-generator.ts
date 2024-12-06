@@ -1,4 +1,3 @@
-// Utility function for generating tokens
 import jwt from "jsonwebtoken";
 
 export const generateToken = (

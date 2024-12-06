@@ -23,11 +23,11 @@ export interface IApiResponse {
 
 // Utility: Custom ApiRequest interface (used when a middleware attaches additional data to the HTTP Request object)
 /*
-    NOTE:
-    1. `Schema.Types.ObjectId` is used to define the type in a Schema
-    2. `**Types.ObjectId` is used to define the typescript type for ObjectId
-    3. `**Types.ObjectId()` is a method used to create an mongoose-ObjectId from a valid Hex string
-  */
+  NOTE:
+  1. `Schema.Types.ObjectId` is used to define the type in a Schema
+  2. `**Types.ObjectId` is used to define the typescript type for ObjectId
+  3. `**Types.ObjectId()` is a method used to create an mongoose-ObjectId from a valid Hex string
+*/
 export interface IRequest extends Request {
   project?: {
     id?: mongoose.Types.ObjectId;

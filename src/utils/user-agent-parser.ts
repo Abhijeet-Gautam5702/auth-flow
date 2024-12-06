@@ -1,5 +1,3 @@
-// Utility function to parse the user-agent header of an API-request
-
 import { DeviceType, UserAgent } from "../types/types";
 
 export const parseUserAgent = (userAgent: string) => {

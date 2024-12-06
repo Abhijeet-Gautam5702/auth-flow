@@ -50,7 +50,6 @@ export const authenticateAdmin = asyncHandler(
       id: adminFromDB._id,
     };
 
-    // Pass control to next middleware/controller
     next();
   }
 );

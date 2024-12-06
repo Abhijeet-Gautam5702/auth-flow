@@ -2043,6 +2043,15 @@ export const updateUserAccount = asyncHandler(
       );
     }
 
+    // If the user tries to change the password using this controller => Don't allow them
+    if(!username && !email && password && req.user?.id){
+      throw new ApiError(
+        responseType.UNSUCCESSFUL.code,
+        responseType.UNSUCCESSFUL.type,
+        "Password change not allowed via this endpoint."
+      )
+    }
+
     // Validate the provided fields using Zod schemas
     if (username) {
       const usernameValidation = ZUsername.safeParse(username);
@@ -2102,7 +2111,7 @@ export const updateUserAccount = asyncHandler(
       // Reset verification status since email changed
       userFromDB.isVerified = false;
     }
-    if (password) {
+    if (!req.user?.id && password) {
       userFromDB.password = password;
     }
 

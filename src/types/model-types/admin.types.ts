@@ -1,5 +1,3 @@
-/* ------------------------------ ADMIN MODEL TYPES ------------------------------------ */
-
 import { Model, Document, Types } from "mongoose";
 
 export interface IAdminBase {

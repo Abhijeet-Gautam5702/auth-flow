@@ -1,5 +1,5 @@
 import { responseType } from "../constants";
-import { NextFunction, Request, Response } from "express"; // Importing request and response types from Express
+import { NextFunction, Request, Response } from "express";
 import { IRequest } from "../types/types";
 
 // Wrapper for every API-controller

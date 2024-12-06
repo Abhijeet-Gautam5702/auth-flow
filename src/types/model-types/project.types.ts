@@ -1,5 +1,3 @@
-/* ------------------------------ PROJECT MODEL TYPES ------------------------------------ */
-
 import mongoose, { Model, Document, Types } from "mongoose";
 
 // LoginMethods interface
