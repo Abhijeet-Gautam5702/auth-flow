@@ -1,4 +1,4 @@
-import { NextFunction, Request, response, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { asyncHandler } from "../utils/async-handler";
 import { IRequest } from "../types/types";
 import { ApiError } from "../utils/custom-api-error";
@@ -30,13 +30,12 @@ export const createProject = asyncHandler(
     // Get the project-details from the request-body
     const { projectName, config, appName, appEmail } = req.body;
 
-    // TODO: Validate the project details-format sent over the request body
-
-    if (projectName.trim() === "") {
+    // Validate the project details-format sent over the request body
+    if (!projectName.trim() || !appName.trim() || !appEmail.trim()) {
       throw new ApiError(
-        responseType.INVALID_FORMAT.code,
-        responseType.INVALID_FORMAT.type,
-        "Please provide a valid name for the project"
+        responseType.NOT_FOUND.code,
+        responseType.NOT_FOUND.type,
+        "Please provide all the required details in the Request-body"
       );
     }
     if (!config) {
@@ -44,6 +43,36 @@ export const createProject = asyncHandler(
         responseType.INVALID_FORMAT.code,
         responseType.INVALID_FORMAT.type,
         "Please provide a valid config details for the project"
+      );
+    }
+
+    // Validate the project-name
+    const isProjectNameValid = ZProjectName.safeParse(projectName);
+    if (!isProjectNameValid.success) {
+      throw new ApiError(
+        responseType.INVALID_FORMAT.code,
+        responseType.INVALID_FORMAT.type,
+        "Invalid Project-Name provided in the Request-body"
+      );
+    }
+
+    // Validate the app-name
+    const isAppNameValid = ZAppName.safeParse(appName);
+    if (!isAppNameValid.success) {
+      throw new ApiError(
+        responseType.INVALID_FORMAT.code,
+        responseType.INVALID_FORMAT.type,
+        "Invalid App-Name provided in the Request-body"
+      );
+    }
+
+    // Validate the app-email
+    const isAppEmailValid = ZEmail.safeParse(appEmail);
+    if (!isAppEmailValid.success) {
+      throw new ApiError(
+        responseType.INVALID_FORMAT.code,
+        responseType.INVALID_FORMAT.type,
+        "Invalid App-Email provided in the Request-body"
       );
     }
 
