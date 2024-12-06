@@ -9,6 +9,7 @@ import { ApiResponse } from "../utils/custom-api-response";
 import {
   validateEmailTemplates,
   validateLoginMethods,
+  validateProjectConfig,
   validateSecurityObject,
 } from "../utils/project-config-validator";
 import { User } from "../models/user.model";
@@ -75,6 +76,9 @@ export const createProject = asyncHandler(
         "Invalid App-Email provided in the Request-body"
       );
     }
+
+    // Validate the config object
+    validateProjectConfig(config);
 
     // Check if a project with the same project-name exists in the database
     const projectFromDB = await Project.findOne({

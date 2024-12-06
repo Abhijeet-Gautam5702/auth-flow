@@ -45,6 +45,18 @@ const checkFieldType = (obj: any, validKeys: any) => {
   }
 };
 
+// Utility: Function to validate the ProjectConfig object
+export const validateProjectConfig = (config: any): boolean => {
+  validateLoginMethods(config.loginMethods);
+  if (config.emailTemplates) {
+    validateEmailTemplates(config.emailTemplates);
+  }
+  if (config.security) {
+    validateSecurityObject(config.security);
+  }
+  return true;
+};
+
 // Utility: Function to validate the LoginMethods object
 export const validateLoginMethods = (loginMethods: any): boolean => {
   // Define the expected keys and their types
