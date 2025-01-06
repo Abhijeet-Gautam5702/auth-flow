@@ -467,8 +467,11 @@ export class Email {
     template: string
   ) => {
     const { data, error } = await this.resend.emails.send({
-      from: this.organization, // TODO: Change this to  `this.project.appEmail` after buying a Resend plan and refistering the backend domain on Resend
-      to: "abhidevelops572@gmail.com", // TODO: Change this to `recipientEmail` after buying a Resend plan and registering the backend domain on Resend
+      //   from: this.organization, // TODO: Change this to  `this.project.appEmail` after buying a Resend plan and registering the backend domain on Resend
+      //   to: "abhidevelops572@gmail.com", // TODO: Change this to `recipientEmail` after buying a Resend plan and registering the backend domain on Resend
+
+      from: this.project.appEmail, // testing
+      to: recipientEmail, // testing
       subject: subject,
       html: template,
     });
