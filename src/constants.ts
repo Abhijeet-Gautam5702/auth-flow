@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { CookieOptions } from "express";
+import { envConfig } from "./config/env-config";
 
 // Message codes for the API-responses
 export const responseType = {
@@ -133,45 +134,45 @@ export const responseType = {
 export const API_VERSION: string = "v1";
 
 // Organization Name and email (TODO: Change this in production)
-export const ORG_NAME: string = "Auth Wave";
-export const ORG_EMAIL: string = "onboarding@resend.dev";
+export const ORG_NAME: string = envConfig.ORG_NAME;
+export const ORG_EMAIL: string = envConfig.ORG_EMAIL;
 
 // Environment variables (as constants)
 export const env = {
   token: {
     refreshToken: {
-      secret: String(process.env.REFRESH_TOKEN_SECRET),
-      expiry: "30d",
+      secret: envConfig.REFRESH_TOKEN_SECRET,
+      expiry: envConfig.REFRESH_TOKEN_EXP,
     },
     accessToken: {
-      secret: String(process.env.ACCESS_TOKEN_SECRET),
-      expiry: "1d",
+      secret: envConfig.ACCESS_TOKEN_SECRET,
+      expiry: envConfig.ACCESS_TOKEN_EXP,
     },
     verificationToken: {
-      secret: String(process.env.VERIFICATION_TOKEN_SECRET),
-      expiry: "15m",
+      secret: envConfig.VERIFICATION_TOKEN_SECRET,
+      expiry: envConfig.VERFIICATION_TOKEN_EXP,
     },
     resetPasswordToken: {
-      secret: String(process.env.RESET_PASSWORD_TOKEN_SECRET),
-      expiry: "15m",
+      secret: envConfig.RESET_PASSWORD_TOKEN_SECRET,
+      expiry: envConfig.RESET_PASSWORD_TOKEN_EXP,
     },
     magicURLToken: {
-      secret: String(process.env.MAGIC_URL_TOKEN_SECRET),
-      expiry: "15m",
+      secret: envConfig.MAGIC_URL_TOKEN_SECRET,
+      expiry: envConfig.MAGIC_URL_TOKEN_EXP,
     },
 
   },
   app: {
-    port: Number(process.env.PORT),
-    corsOrigin: String(process.env.CORS_ORIGIN),
+    port: envConfig.PORT,
+    corsOrigin: envConfig.CORS_ORIGIN,
   },
   database: {
-    uri: String(process.env.MONGO_DB_URI),
-    dbName: "auth-wave-service",
+    uri: envConfig.MONGO_DB_URI,
+    dbName: envConfig.DB_NAME,
   },
   secret: {
-    projectKeyGeneration: String(process.env.PROJECT_KEY_GENERATION_SECRET),
-    resendApiKey: String(process.env.RESEND_API_KEY),
+    projectKeyGeneration: envConfig.PROJECT_KEY_GENERATION_SECRET,
+    resendApiKey: envConfig.RESEND_API_KEY,
   },
 };
 
@@ -183,5 +184,5 @@ export const cookieOptions: CookieOptions = {
 };
 
 // Domains of AuthWave
-export const backendDomain:string = String(process.env.BACKEND_DOMAIN);
-export const frontendDomain:string = String(process.env.FRONTEND_DOMAIN);
+export const backendDomain: string = envConfig.BACKEND_DOMAIN;
+export const frontendDomain: string = envConfig.FRONTEND_DOMAIN;
