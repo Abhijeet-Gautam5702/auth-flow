@@ -17,7 +17,8 @@ app.use(
 app.use(cookieParser());
 app.use(
   cors({
-    credentials: true
+    credentials: true,
+    origin:true
   })
 );
 app.use(apiRateLimiter.overall(5 * 60 * 1000, 100));
